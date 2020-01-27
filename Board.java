@@ -8,11 +8,8 @@ import java.util.Random;
 public class Board {
     private Button[][] board;
     private Player[] players;
-    private Button[] bag;
+    private ArrayList<Button> bag;
 
-    // contains indices for all remaining tiles in the bag,
-    // so that an index can be chosen cleanly at random
-    private ArrayList<Integer> bagIndices;
     private int currentTurn; //todo Player?
 
     /**
@@ -26,7 +23,8 @@ public class Board {
      * @param players array of players
      */
     Board(int width, int height, Player[] players) {
-        initBoard(width, height);
+//        initBoard(width, height);
+        board = new Button[width][height];
 
         this.players = players;
         currentTurn = 0;
@@ -56,18 +54,15 @@ public class Board {
      * Initialises the bag with the standard list of tiles
      */
     private void initBag() {
-        bag = new Button[Main.NUM_PIECES];
-        bagIndices = new ArrayList<>(bag.length);
-        int i = 0;
+        bag = new ArrayList<>(Main.NUM_PIECES);
 
-        String[] tileInfos = FileUtils.readFile("src/sample/tiles.txt");
+        ArrayList<String> tileInfos = FileUtils.read("src/sample/tiles.txt");
         for (String tileInfo : tileInfos) {
             String[] s = tileInfo.split(" "); // str num val
             String str = s[0];
             int num = Integer.parseInt(s[1]);
             int val = Integer.parseInt(s[2]);
             for (int j = 0; j < num; j++) {
-                bagIndices.add(i);
 
                 //todo move elsewhere?
                 Button button = new Button(str);
@@ -75,7 +70,7 @@ public class Board {
                 button.setMaxSize(30, 30);
                 button.setOnAction(e -> Main.currentTile = button); // rack tile clicked
 
-                bag[i++] = button;
+                bag.add(button);
             }
         }
     }
@@ -97,13 +92,8 @@ public class Board {
      */
     private Button getFromBag() {
         Random rand = new Random();
-        int n = rand.nextInt(bagIndices.size());
-        Button button = bag[n];
-        bagIndices.remove(n); // note removing at index n
-        bag[n] = null;//todo might be messing stuff up
-        if (button == null)
-            System.out.println(":(");
-        return button;
+        int n = rand.nextInt(bag.size());
+        return bag.remove(n);
     }
 
     Button[][] getBoard() {
@@ -126,8 +116,6 @@ public class Board {
         }
     }
 
-    //todo not working; not all buttons are being nulled when used
-    //todo or problem is in getFromBag; started with 6 tiles once (before any were removed)
     /**
      * Finds any empty indices, and grabs a new button from the bag
      */
