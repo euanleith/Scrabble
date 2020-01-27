@@ -4,12 +4,12 @@ import javafx.scene.control.Button;
 import javafx.scene.layout.GridPane;
 
 class Player {
-    private Tile[] rack;
+    private Button[] rack;
     private int points;
     private String name;
 
     Player(String name) {
-        rack = new Tile[Main.RACK_SIZE];//todo move RACK_SIZE to main?
+        rack = new Button[Main.RACK_SIZE];//todo move RACK_SIZE to main?
         //todo set random? (need to coordinate with bag)
         points = 0;
         this.name = name;
@@ -19,66 +19,65 @@ class Player {
         return name;
     }
 
-    Tile getTile(int index) {
+    Button getButton(int index) {
         return rack[index];
     }
-
-    Tile getTile(Button button) {
-        for (Tile tile : rack) {
-            if (tile.getButton() == button) {
-                return tile;
-            }
-        }
-        return null;
-    }
+//
+//    Tile getTile(Button button) {
+//        for (Tile tile : rack) {
+//            if (tile.getButton() == button) {
+//                return tile;
+//            }
+//        }
+//        return null;
+//    }
 
     int getRackLength() {
         int cnt = 0;
-        for (Tile tile : rack) {
-            if (tile != null) {
+        for (Button button : rack) {
+            if (button != null) {
                 cnt++;
             }
         }
         return cnt;
     }
 
-    void remove(Tile tile) {
-        for (int i = 0; i < rack.length; i++) {
-            if (rack[i] == tile) {
-                rack[i] = null;
-                return;
+    //todo yucky
+    /**
+     * Returns all of the non-null elements of the rack
+     * @return all of the non-null elements of the rack
+     */
+    Button[] getRack() {
+        int length = 0;
+        for (Button button : rack) {
+            if (button != null) {
+                length++;
             }
         }
+        Button[] rackWithoutNulls = new Button[length];
+        int index = 0;
+        for (Button button : rack) {
+            if (button != null) {
+                rackWithoutNulls[index++] = button;
+            }
+        }
+        return rackWithoutNulls;
     }
 
     void remove(Button button) {
         rack[GridPane.getColumnIndex(button)] = null;
     }
 
-    void add(Tile tile) {
-        for (int i = 0; i < rack.length; i++) {
-            if (rack[i] == null) {
-                rack[i] = tile;
-                return;
-            }
-        }
-    }
-
     void add(Button button) {
         for (int i = 0; i < rack.length; i++) {
             if (rack[i] == null) {
-                rack[i] = new Tile(button);
+                rack[i] = button;
                 return;
             }
         }
     }
 
-    Button getEmptyButton() {
-        for (Tile tile : rack) {
-            if (tile.getButton().getText().equals("")) {
-                return tile.getButton();
-            }
-        }
-        return null;
+    void add(int index, Button button) {
+        rack[index] = button;
     }
 }
