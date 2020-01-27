@@ -41,7 +41,7 @@ public class Main extends Application {
 
     private Board board;
 
-    private Button currentTile; // tile last clicked on
+    static Button currentTile; // tile last clicked on
     private GridPane currentRack;
     private HashSet<Button> currentTurnTiles; // tiles that have been placed this turn
 
@@ -118,7 +118,8 @@ public class Main extends Application {
         gridBoard.setPadding(new Insets(10, 10, 10, 10));
         for (int i = 0; i < BOARD_WIDTH; i++) {
             for (int j = 0; j < BOARD_HEIGHT; j++) {
-                Button button = board.getBoard()[i][j].getButton();//todo note this might create a separate pointer
+                Button button = board.setButton(i,  j, "");
+//                Button button = board.getBoard()[i][j];//todo note this might create a separate pointer
                 button.setMinSize(30, 30);
                 button.setMaxSize(30, 30);
                 button.setOnAction(e -> emptyBoardTileEvent(button));
@@ -217,7 +218,7 @@ public class Main extends Application {
                 else rack.add(button, 0, i);
             }
 
-            // add rack to borderpane
+            // add rack to pane
             switch (j) {
                 case 1:
                     border.setTop(rack);
@@ -242,7 +243,8 @@ public class Main extends Application {
      * @return currentPlayer's rack as a GridPane
      */
     private GridPane drawNextRack(BorderPane border) {
-        // reset current turn tiles todo make function
+
+        // reset current turn tiles
         if (currentTurnTiles != null) {
             for (Button b : currentTurnTiles) {
                 b.setOnAction(null);
@@ -250,15 +252,9 @@ public class Main extends Application {
         }
         currentTurnTiles = new HashSet<>(RACK_SIZE);
 
-        Player player = board.currentPlayer();
+        // set visible rack to new current player's rack
         GridPane rack = new GridPane();
-        for (int i = 0; i < RACK_SIZE; i++) {
-            Button button = new Button(player.getTile(i).getStr());//todo inc val
-            rack.add(button, i, 0);
-            button.setMinSize(30, 30);
-            button.setMaxSize(30, 30);
-            button.setOnAction(e -> currentTile = button); // rack tile clicked
-        }
+        rack.addRow(0, board.currentPlayer().getRack());
         border.setBottom(rack);
         return rack;
     }
