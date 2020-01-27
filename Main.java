@@ -2,6 +2,7 @@ package sample;
 
 import javafx.application.Application;
 import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -12,7 +13,8 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /*
 Variable rules: plurals, names, verbs, places, etc.
@@ -32,6 +34,8 @@ public class Main extends Application {
 
     private Scene menuScene, gameScene, setupScene;
 
+    private ArrayList<String> dictionary;
+
     //todo put in Board?
     private int numPlayers;
     private Player[] players;
@@ -43,10 +47,12 @@ public class Main extends Application {
 
     static Button currentTile; // tile last clicked on
     private GridPane currentRack;
-    private HashSet<Button> currentTurnTiles; // tiles that have been placed this turn
+    private ArrayList<Button> currentTurnTiles; // tiles that have been placed this turn
 
     @Override
     public void start(Stage stage) throws Exception {
+
+        dictionary = FileUtils.read("src/sample/dict.txt");
 
         menuScene = initMenuScene(stage);
 
@@ -119,7 +125,6 @@ public class Main extends Application {
         for (int i = 0; i < BOARD_WIDTH; i++) {
             for (int j = 0; j < BOARD_HEIGHT; j++) {
                 Button button = board.setButton(i,  j, "");
-//                Button button = board.getBoard()[i][j];//todo note this might create a separate pointer
                 button.setMinSize(30, 30);
                 button.setMaxSize(30, 30);
                 button.setOnAction(e -> emptyBoardTileEvent(button));
@@ -136,13 +141,65 @@ public class Main extends Application {
         quit.setOnAction(e -> System.exit(0));
         Button finishTurn = new Button("Finish turn");
         finishTurn.setOnAction(e -> {
-            board.nextTurn();
-            currentRack = drawNextRack(border);
-        }); //todo error check
-        side.addRow(16, finishTurn, menu, quit);
+            if (isValidMove(currentTurnTiles)) {
+                board.nextTurn();
+                currentRack = drawNextRack(border);
+            }
+        });
+        side.addRow(BOARD_WIDTH+1, finishTurn, menu, quit);
         border.setRight(side);
 
         return new Scene(border, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+
+    //todo i was assuming the order is maintained within the list, but it isnt necessarily.....
+    boolean isValidMove(ArrayList<Button> tiles) {
+        //todo order
+        return isLine(tiles) && isConnected(tiles) && isValidWord(tiles);
+    }
+
+    /**
+     * Checks if the list of tiles are in a connected line
+     * @param tiles tile list
+     * @return true if is in a line, false if not
+     */
+    boolean isLine(ArrayList<Button> tiles) {
+        if (tiles.size() < 2) return false;
+        double prevAngle = -1;
+        for (int i = 0; i < tiles.size()-1; i++) {
+            Button button = tiles.get(i);
+            Point2D p1 = new Point2D(GridPane.getColumnIndex(button), GridPane.getRowIndex(button));
+            Button button2 = tiles.get(i+1);
+            Point2D p2 = new Point2D(GridPane.getColumnIndex(button2), GridPane.getRowIndex(button2));
+            double angle = getAngle(p1, p2);
+            if (angle % 90 != 0 || (i != 0 && angle != prevAngle)) return false;
+            prevAngle = angle;
+        }
+        return true;
+    }
+
+    //todo if tiles are connected at one point to a non-empty tile already on the board
+    boolean isConnected(ArrayList<Button> tiles) {
+        return true;
+    }
+
+    boolean isValidWord(ArrayList<Button> tiles) {
+        String word = "";
+        for (Button button : tiles) {
+            //todo if 'Blank' tile
+            word += button.getText();
+        }
+        return dictionary.contains(word);
+    }
+
+    double getAngle(Point2D p1, Point2D p2) {
+        double angle = Math.toDegrees(
+                Math.atan2(p2.getY() - p1.getY(),
+                        p2.getX() - p1.getX()));
+
+        if(angle < 0) angle += 360;
+
+        return angle;
     }
 
     /**
@@ -185,7 +242,7 @@ public class Main extends Application {
      * Event for when non-empty board tile is clicked
      * Creates a new button replicating the clicked tile,
      * adds this button to currentPlayer's rack,
-     * resets the board tile to empty
+     * resets the board tile to empty and removes it from currentTurnTiles
      * @param button board tile
      */
     private void nonEmptyBoardTileEvent(Button button) {
@@ -195,6 +252,7 @@ public class Main extends Application {
         empty.setOnAction(e -> currentTile = empty);
         currentRack.add(empty, board.currentPlayer().getRackLength(), 0);
         board.currentPlayer().add(empty);
+        currentTurnTiles.remove(button);
         currentTile = null;
         button.setText("");
         button.setOnAction(e2 -> emptyBoardTileEvent(button));
@@ -250,7 +308,7 @@ public class Main extends Application {
                 b.setOnAction(null);
             }
         }
-        currentTurnTiles = new HashSet<>(RACK_SIZE);
+        currentTurnTiles = new ArrayList<>(RACK_SIZE);
 
         // set visible rack to new current player's rack
         GridPane rack = new GridPane();
