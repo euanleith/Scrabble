@@ -5,18 +5,22 @@ import javafx.scene.layout.GridPane;
 
 class Player {
     private Button[] rack;
-    private int points;
+    private int score;
     private String name;
 
     Player(String name) {
         rack = new Button[Main.RACK_SIZE];//todo move RACK_SIZE to main?
         //todo set random? (need to coordinate with bag)
-        points = 0;
+        score = 0;
         this.name = name;
     }
 
     String getName() {
         return name;
+    }
+
+    int getScore() {
+        return score;
     }
 
     Button getButton(int index) {
@@ -79,5 +83,9 @@ class Player {
 
     void add(int index, Button button) {
         rack[index] = button;
+    }
+
+    void add(int score) {
+        this.score += score;
     }
 }

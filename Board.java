@@ -1,7 +1,10 @@
 package sample;
 
 import javafx.scene.control.Button;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -62,6 +65,9 @@ public class Board {
             String str = s[0];
             int num = Integer.parseInt(s[1]);
             int val = Integer.parseInt(s[2]);
+
+            Main.letters.put(str, val); //todo move?
+
             for (int j = 0; j < num; j++) {
 
                 //todo move elsewhere?
@@ -94,6 +100,21 @@ public class Board {
         Random rand = new Random();
         int n = rand.nextInt(bag.size());
         return bag.remove(n);
+    }
+
+    //todo move to board?
+    /**
+     * Returns if the list of tiles form a valid move, i.e.;
+     * Are in a line, are connected,
+     * and those connections form valid words
+     * @param tiles list of tiles
+     * @return true if the list of tiles forms a valid move, false otherwise.
+     */
+    int move(ArrayList<Button> tiles) {
+        if (tiles.isEmpty()) return 0;
+        if (!ButtonUtils.isLine(tiles)) return -1;
+        ArrayList<String> connections = Main.getConnections(tiles, board);
+        return Main.areValidWords(connections, tiles);
     }
 
     Button[][] getBoard() {
@@ -138,5 +159,13 @@ public class Board {
     Button setButton(int i, int j, String txt) {
         board[i][j] = new Button(txt);
         return board[i][j];
+    }
+
+    String getScores() {
+        String scores = "Scores:\n";
+        for (Player player : players) {
+            scores += player.getName() + ": " + player.getScore() + "\n";
+        }
+        return scores;
     }
 }

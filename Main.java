@@ -2,24 +2,37 @@ package sample;
 
 import javafx.application.Application;
 import javafx.geometry.Insets;
-import javafx.geometry.Point2D;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
+import javafx.util.Pair;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
+import java.util.function.Predicate;
 
 /*
-Variable rules: plurals, names, verbs, places, etc.
-Variable dictionary(/ies): add and remove words, remember custom dictionaries as well as default
+Major
 Change setup scene to be like civ
+General error checks and responses(e.g. invalid move)
+
+Medium
+Organise into classes;
+    how to structure buttons and their events?
+    Screen class??
+    basically idk, but it'll be good practice to figure out
+        basic structure is that I have a number of screens, each with a list of buttons, each with events. I also have the functionality of the game (i.e. backend), which should be connected to the ui part at few and specific places. e.g. isValidMove is backend, and only needs to be supplied the most recent move and the board. How would this be integrated? There's plenty of options, idk which is the best.
+        So there should be an object Board, but what exactly should it have? It could just be an 2d array of Buttons and players, and the functions could be abstracted.
+            You have a 2d array, and an action which alters the contents of the array, which is checked if valid. Note that elements are added like a buffer, then the buffer is flushed when 'finish turn' is pressed.
+Add ability to draw new rack
+Might be able to do a more efficient dictionary.contains() since I know its alphabetical
+Error checking
+
+Peripherals
+Variable rules: plurals, names, verbs, places, etc.
+Variable dictionaries: add and remove words, remember custom dictionaries as well as default
  */
 
 public class Main extends Application {
@@ -34,9 +47,9 @@ public class Main extends Application {
 
     private Scene menuScene, gameScene, setupScene;
 
-    private ArrayList<String> dictionary;
+    private static ArrayList<String> dictionary;
+    static HashMap<String, Integer> letters;
 
-    //todo put in Board?
     private int numPlayers;
     private Player[] players;
     private int playerIndex;
@@ -53,6 +66,7 @@ public class Main extends Application {
     public void start(Stage stage) throws Exception {
 
         dictionary = FileUtils.read("src/sample/dict.txt");
+        letters = new HashMap<>(27);
 
         menuScene = initMenuScene(stage);
 
@@ -139,68 +153,186 @@ public class Main extends Application {
         menu.setOnAction(e -> stage.setScene(menuScene));
         Button quit = new Button("Quit");
         quit.setOnAction(e -> System.exit(0));
+        Button scores = new Button(board.getScores());
         Button finishTurn = new Button("Finish turn");
         finishTurn.setOnAction(e -> {
-            if (isValidMove(currentTurnTiles)) {
+            int score = board.move(currentTurnTiles);
+            if (score != -1) {
+                board.currentPlayer().add(score);
+                scores.setText(board.getScores());
                 board.nextTurn();
                 currentRack = drawNextRack(border);
-            }
+            }//todo else say 'invalid move' and something for no tiles being placed
         });
         side.addRow(BOARD_WIDTH+1, finishTurn, menu, quit);
+        side.addRow(BOARD_WIDTH+2, scores);
         border.setRight(side);
 
         return new Scene(border, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
 
-    //todo i was assuming the order is maintained within the list, but it isnt necessarily.....
-    boolean isValidMove(ArrayList<Button> tiles) {
-        //todo order
-        return isLine(tiles) && isConnected(tiles) && isValidWord(tiles);
+    //-------------------todo move all of these
+
+    //todo returns a list of strings which are the strings created by the new connections on the board from this turn
+    //check each tile, and for each connection, create a new string from the string of buttons it creates
+    //note: assumes list is a line
+    static ArrayList<String> getConnections(ArrayList<Button> tiles, Button[][] board) {
+        ArrayList<String> connections = new ArrayList<>();
+        for (Button button : tiles) {
+            ArrayList<Button> surrounding = getSurroundingButtons(button, tiles, board);
+            for (Button connected : surrounding) {
+                connections.add(ButtonUtils.toString(connected, tiles));
+            }
+        }
+        return connections;
     }
 
     /**
-     * Checks if the list of tiles are in a connected line
-     * @param tiles tile list
-     * @return true if is in a line, false if not
+     * Returns the list of non-empty buttons surrounding a given button
+     * that are within the confines of the board
+     * @param button button
+     * @param board board of buttons
+     * @return list of non-empty buttons surrounding a given button
+     * that are within the confines of the board
      */
-    boolean isLine(ArrayList<Button> tiles) {
-        if (tiles.size() < 2) return false;
-        double prevAngle = -1;
-        for (int i = 0; i < tiles.size()-1; i++) {
-            Button button = tiles.get(i);
-            Point2D p1 = new Point2D(GridPane.getColumnIndex(button), GridPane.getRowIndex(button));
-            Button button2 = tiles.get(i+1);
-            Point2D p2 = new Point2D(GridPane.getColumnIndex(button2), GridPane.getRowIndex(button2));
-            double angle = getAngle(p1, p2);
-            if (angle % 90 != 0 || (i != 0 && angle != prevAngle)) return false;
-            prevAngle = angle;
+    static ArrayList<Button> getSurroundingButtons(Button button, ArrayList<Button> tiles, Button[][] board) {
+        ArrayList<Button> buttons = new ArrayList<>(8);
+        ArrayList<Pair<Integer, Integer>> positions = new ArrayList<>();
+        positions.add(new Pair<>(0,-1));
+        positions.add(new Pair<>(-1,0));
+        positions.add(new Pair<>(1,0));
+        positions.add(new Pair<>(0,1));
+        for (Pair<Integer, Integer> pos : positions) {
+            int x = GridPane.getColumnIndex(button) + pos.getKey();
+            int y = GridPane.getRowIndex(button) + pos.getValue();
+            if (x >= 0 && x < board.length &&
+                    y >= 0 && y < board[x].length &&
+                    !board[x][y].getText().equals("") &&//todo this will need to be changed when what denotes a used board tile changes
+                    !tiles.contains(board[x][y])) {
+                buttons.add(board[x][y]);
+            }
         }
-        return true;
+        return buttons;
     }
 
-    //todo if tiles are connected at one point to a non-empty tile already on the board
-    boolean isConnected(ArrayList<Button> tiles) {
-        return true;
-    }
-
-    boolean isValidWord(ArrayList<Button> tiles) {
-        String word = "";
-        for (Button button : tiles) {
-            //todo if 'Blank' tile
-            word += button.getText();
+    //todo move
+    //todo rename; thereExists should return a boolean
+    /**
+     * Returns the first element of a list for which the predicate is true
+     * @param list ArrayList
+     * @param pred Predicate
+     * @param <T> Type of list and pred
+     * @return the first element of a list for which the predicate is true, null if this doesn't exist
+     */
+    static <T>T find(List<T> list, Predicate<T> pred) {
+        for (T obj : list) {
+            if (pred.test(obj)) {
+                return obj;
+            }
         }
-        return dictionary.contains(word);
+        return null;
     }
 
-    double getAngle(Point2D p1, Point2D p2) {
-        double angle = Math.toDegrees(
-                Math.atan2(p2.getY() - p1.getY(),
-                        p2.getX() - p1.getX()));
-
-        if(angle < 0) angle += 360;
-
-        return angle;
+    //todo name contains()?
+    /**
+     * Returns true if there is an element in the list for which the predicate is true
+     * @param list ArrayList
+     * @param pred Predicate
+     * @param <T> Type of list and pred
+     * @return true if there is an element in the list for which the predicate is true, false otherwise
+     */
+    static <T> boolean thereExists(List<T> list, Predicate<T> pred) {
+        for (T obj : list) {
+            if (pred.test(obj)) {
+                return true;
+            }
+        }
+        return false;
     }
+
+    /**
+     * Checks if the list of words made are all valid
+     * @param connections words formed by connections made with existing tiles on the board
+     * @param tiles list of new tiles placed
+     * @return if all words are valid, the score earned from these words, -1 otherwise
+     */
+    static int areValidWords(ArrayList<String> connections, ArrayList<Button> tiles) {
+
+        // if not connected, valid if its the first
+        // move of the game, and that word is valid
+        if (connections.isEmpty()) { // if not connected
+            if (thereExists(tiles, ButtonUtils::isInCentre)) {
+                double angle = ButtonUtils.getAngle(tiles);
+                MathsUtils.sortFromAngle(tiles, angle, Button::getLayoutX, Button::getLayoutY);
+                if (isValidWord(tiles)) { // if first move
+                    return getScore(ButtonUtils.toString(tiles));
+                }
+            }
+            return -1;
+        }
+
+        // if connected, valid if each of the words formed by the
+        // connections made with existing tiles on the board are valid
+        int score = 0;
+        for (String connection : connections) {
+            if (!isValidWord(connection)) return -1;
+            score += getScore(connection);
+        }
+        return score;
+    }
+
+    /**
+     * Returns true if a valid word can be formed
+     * from the given list of buttons,
+     * i.e. by the string made from the combination
+     * of each button's text in order
+     * @param buttons list of buttons
+     * @return true if a valid word can be formed from the buttons, false otherwise
+     */
+    static boolean isValidWord(ArrayList<Button> buttons) {
+        return isValidWord(ButtonUtils.toString(buttons));
+    }
+
+    /**
+     * Returns true if a valid word can be formed
+     * from the given string.
+     * if it contains blank character(s),
+     * by replacing each blank with each letter
+     * @param str string
+     * @return true if a valid word can be formed from the given string, false otherwise
+     */
+    static boolean isValidWord(String str) {
+        String[] arr = str.split("((?<=Blank)|(?=Blank))");
+        for (String letter : letters.keySet()) {
+            String test = "";
+            for (String s : arr) {
+                if (s.equals("Blank")) {
+                    test += letter;
+                    return isValidWord(test + str.substring((ArrUtils.indexOf(arr, s))+5));
+                }
+                else test += s;
+            }
+            if (dictionary.contains(test)) return true;
+        }
+        return false;
+    }
+
+    //todo move
+    static int getScore(String str) {
+        int score = 0;
+        String[] arr = str.split("((?<=Blank)|(?=Blank))");
+        for (String letter : arr) {
+            if (letter.equals("Blank")) score += 2;
+            else {
+                for (int i = 0; i < letter.length(); i++) {
+                    score += letters.get(letter.substring(i, i+1));
+                }
+            }
+        }
+        return score;
+    }
+
+    //-------------------
 
     /**
      * Event for when empty board tile is clicked
@@ -213,29 +345,10 @@ public class Main extends Application {
         if (currentTile == null) return;
         button.setText(currentTile.getText());
         board.currentPlayer().remove(currentTile);
-        remove(currentRack, currentTile);
+        ButtonUtils.remove(currentRack, currentTile);
         currentTurnTiles.add(button); // add to tiles that can be taken back this turn
         button.setOnAction(e -> nonEmptyBoardTileEvent(button)); // when clicked, return to rack
         currentTile = null;
-    }
-
-    //todo might still be wrong...
-    /**
-     * Removes button from a GridPane and shift other items left
-     * gridpane.getChildren is an ObservableList, which shifts all values when removing elements
-     * gridpane however has separate indices which don't change, so I have to change them manually
-     * @param button button to be removed
-     */
-    private void remove(GridPane grid, Button button) {
-        for (int i = 0; i < grid.getChildren().size(); i++) {
-            if (grid.getChildren().get(i) == button) {
-                for (int j = i; j < grid.getChildren().size()-1; j++) {
-                    GridPane.setColumnIndex(grid.getChildren().get(j+1), j);
-                }
-                break;
-            }
-        }
-        grid.getChildren().remove(button);
     }
 
     /**
