@@ -25,3 +25,4 @@ X 1 8
 Y 2 4
 Z 1 10
 Blank 2 2
+Empty 0 -1

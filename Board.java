@@ -3,15 +3,17 @@ package sample;
 import java.util.ArrayList;
 import java.util.Random;
 
+import static sample.ButtonUtils.areLines;
+import static sample.ButtonUtils.getConnections;
+import static sample.FileUtils.read;
+import static sample.Main.NUM_PIECES;
+import static sample.Main.RACK_SIZE;
+import static sample.MathsUtils.thereExists;
+
 public class Board {
     private Tile[][] board;
-    private Player[] players;
-    private Tile[] bag;
-
-    // contains indices for all remaining tiles in the bag,
-    // so that an index can be chosen cleanly at random
-    private ArrayList<Integer> bagIndices;
-    private int currentTurn; //todo Player?
+    private CircularArray<Player> players;
+    private ArrayList<Tile> bag;
 
     /**
      * Board constructor
@@ -23,17 +25,18 @@ public class Board {
      * @param height height of the board
      * @param players array of players
      */
-    Board(int width, int height, Player[] players) {
-        initBoard(width, height);
+    Board(int width, int height, CircularArray<Player> players) {
+//        initBoard(width, height);
+        board = new Tile[width][height];
 
         this.players = players;
-        currentTurn = 0;
 
         initBag();
 
         giveInitTiles();
     }
 
+    //todo
     /**
      * Initialises the board with various empty tiles
      * @param width width of the board
@@ -44,8 +47,7 @@ public class Board {
 
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                //todo board probably shouldn't have buttons; just tiles
-                board[i][j] = new Tile("", -1);//todo str
+//                board[i][j] = new Tile("", -1);
             }
         }
     }
@@ -54,19 +56,18 @@ public class Board {
      * Initialises the bag with the standard list of tiles
      */
     private void initBag() {
-        bag = new Tile[Main.NUM_PIECES];
-        bagIndices = new ArrayList<>(bag.length);
-        int i = 0;
+        bag = new ArrayList<>(NUM_PIECES);
 
-        String[] tileInfos = FileUtils.readFile("src/sample/tiles.txt");
+        ArrayList<String> tileInfos = read("src/sample/tiles.txt");
         for (String tileInfo : tileInfos) {
             String[] s = tileInfo.split(" "); // str num val
             String str = s[0];
             int num = Integer.parseInt(s[1]);
-            int val = Integer.parseInt(s[2]);
+
             for (int j = 0; j < num; j++) {
-                bagIndices.add(i);
-                bag[i++] = new Tile(str, val);
+                Tile tile = new Tile(str);
+                tile.setEvent(e -> Main.currentTile = tile);
+                bag.add(tile);
             }
         }
     }
@@ -76,29 +77,59 @@ public class Board {
      */
     private void giveInitTiles() {
         for (Player player : players) {
-            for (int i = 0; i < Main.RACK_SIZE; i++) {
-                Random rand = new Random();
-                int n = rand.nextInt(bagIndices.size());
-                player.add(bag[n]);
-                bagIndices.remove(n); // note removing at index n
+            for (int i = 0; i < RACK_SIZE; i++) {
+                player.getRack().add(getFromBag());
             }
         }
     }
 
-    Tile[][] getBoard() {
-        return board;
+    /**
+     * Gets and removes random button from the bag
+     * @return random button from the bag
+     */
+    private Tile getFromBag() {
+        Random rand = new Random();
+        int n = rand.nextInt(bag.size());
+        return bag.remove(n);
     }
 
-    Player[] getPlayers() {
+    /**
+     * Returns if the list of tiles form a valid move, i.e.;
+     * Are in a line, are connected,
+     * and those connections form valid words
+     * @param tiles list of tiles
+     * @return true if the list of tiles forms a valid move, false otherwise.
+     */
+    public int move(ArrayList<Tile> tiles) {
+        if (tiles.isEmpty()) return 0;
+        ArrayList<ArrayList<Tile>> connections = getConnections(tiles, board);
+        if (connections.size() == 0) {
+            if (!thereExists(tiles,ButtonUtils::isInCentre)) return -1;
+            else connections.add(tiles);
+        }
+        if (!areLines(connections)) return -1;
+        return Dictionary.areValidWords(ButtonUtils.toString(connections));
+    }
+
+    CircularArray<Player> getPlayers() {
         return players;
     }
 
     /**
-     * Moves to the next turn
+     * Refills the rack of the player who just went,
+     * then moves to the next turn,
      */
-    void nextTurn() {
-        if (++currentTurn >= players.length) {
-            currentTurn = 0;
+    public void nextTurn() {
+        refillRack();
+    }
+
+    /**
+     * Finds any empty indices, and grabs a new button from the bag
+     */
+    private void refillRack() {
+        Player currentPlayer = players.next();
+        while (currentPlayer.getRack().size() < RACK_SIZE) {
+            currentPlayer.getRack().add(getFromBag());
         }
     }
 
@@ -107,6 +138,19 @@ public class Board {
      * @return the player who's turn it currently is
      */
     Player currentPlayer() {
-        return players[currentTurn];
+        return players.peek();
+    }
+
+    Tile setTile(int i, int j, String txt) {
+        board[i][j] = new Tile(txt);
+        return board[i][j];
+    }
+
+    String getScores() {
+        String scores = "Scores:\n";
+        for (Player player : players) {
+            scores += player.getName() + ": " + player.getScore() + "\n";
+        }
+        return scores;
     }
 }

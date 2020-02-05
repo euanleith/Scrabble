@@ -1,39 +1,69 @@
 package sample;
 
-import javafx.scene.control.Button;
+import javafx.event.EventHandler;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
+
+import java.io.FileInputStream;
+
+import static sample.Dictionary.getValue;
+import static sample.TileUtils.IMG_SIZE;
+
 
 class Tile {
-    private Button button;
-//    private String str;
-    private int val; //todo note values might be changing if changing button text...
-    private boolean empty;
+    private ImageView img;
+    private String text;
+    private int val;
 
-    Tile(String str, int val) {
-//        this.str = str;
-        this.val = val;
-        button = new Button(str);//todo
-        empty = true;
+    Tile(String text) {
+        img = new ImageView();
+        img.setFitWidth(IMG_SIZE);
+        img.setFitHeight(IMG_SIZE);
+
+        set(text);
+        this.val = getValue(text);
     }
 
-    Tile(Button button) {//todo~
-        this.button = button;
+    ImageView getImg() {
+        return img;
     }
 
-    Button getButton() {
-        return button;
+    String getText() {
+        return text;
     }
 
-    String getStr() {
-//        return str;
-        return button.getText();
+    /**
+     * Sets the text, image, and value
+     * @param text todo
+     */
+    void set(String text) {
+        setImg(text);
+        this.text = text;
+        val = getValue(text);
     }
 
-    int getVal() {
-        return val;
+    private void setImg(String text) {
+        try {
+            Image image = new Image(new FileInputStream("src/sample/imgs/" + text + ".jpg"));
+            img.setImage(image);
+        } catch (Exception e) {e.printStackTrace();}
+    }
+
+    void setEvent(EventHandler<? super MouseEvent> event) {
+        img.setOnMouseClicked(event);
+    }
+
+    double getX() {
+        return img.getLayoutX();
+    }
+
+    double getY() {
+        return img.getLayoutY();
     }
 
     @Override
     public String toString() {
-        return "str: " + button.getText() + " val: " + val;
+        return "text: " + text + " val: " + val;
     }
 }
