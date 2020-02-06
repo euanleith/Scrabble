@@ -1,14 +1,12 @@
 package sample;
 
-import java.util.AbstractList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.RandomAccess;
+import java.util.*;
 
 //todo more like CircularIndexedArray or something
 public class CircularArray<T> extends AbstractList<T>
         implements List<T>, RandomAccess, Cloneable, java.io.Serializable {
     private static final int DEFAULT_CAPACITY = 10;
+    private int size;
 
     private Object[] arr;
     private int outIndex;
@@ -16,14 +14,25 @@ public class CircularArray<T> extends AbstractList<T>
 
     public CircularArray() {
         arr = new Object[DEFAULT_CAPACITY];
+        size = 0;
         outIndex = 0;
         inIndex = 0;
     }
 
     public CircularArray(int size) {
         arr = new Object[size];
+        this.size = 0;
         outIndex = 0;
         inIndex = 0;
+    }
+
+    public CircularArray(T... in) {
+        arr = new Object[DEFAULT_CAPACITY];
+        outIndex = 0;
+        inIndex = 0;
+        for (T obj : in) {
+            add(obj);
+        }
     }
 
     public boolean add(T obj) {
@@ -34,6 +43,7 @@ public class CircularArray<T> extends AbstractList<T>
         }
 
         arr[inIndex++] = obj;
+        size++;
         return true;//todo temp
     }
 
@@ -53,7 +63,7 @@ public class CircularArray<T> extends AbstractList<T>
     }
 
     public int size() {
-        return arr.length;
+        return size;
     }
 
     @Override

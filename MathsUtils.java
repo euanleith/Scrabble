@@ -98,8 +98,8 @@ public abstract class MathsUtils {
 
     /**
      * Returns true if there is an element in the list for which the predicate is true
-     * @param list ArrayList
-     * @param pred Predicate
+     * @param list List
+     * @param pred Predicate to be tested for each element of the list
      * @param <T> Type of list and pred
      * @return true if there is an element in the list for which the predicate is true, false otherwise
      */
@@ -110,5 +110,38 @@ public abstract class MathsUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * Applies the given void function to each element in the list
+     * @param list List
+     * @param func Function to be applied to each element of the list
+     * @param <T> Type of list and function parameter
+     */
+    static <T> void forEach(List<T> list, Function<T, Void> func) {
+        for (T obj : list) {
+            func.apply(obj);
+        }
+    }
+
+    //todo name; forEachThat, forEachIf, forEachWhich, forWhich
+    /**
+     * Applies the given void function to each element in the list
+     * if that element satisfies the given predicate
+     * @param list List
+     * @param pred Predicate to be tested for each element of the list
+     * @param func Function to be applied to each element of the list
+     * @param <T> Type of list and function parameter
+     * @return true if there is an element for which the predicate is true, false otherwise
+     */
+    static <T> boolean forWhich(List<T> list, Predicate<T> pred, Function<T, Void> func) {
+        boolean out = false;
+        for (T obj : list) {
+            if (pred.test(obj)) {
+                func.apply(obj);
+                out = true;
+            }
+        }
+        return out;
     }
 }

@@ -2,6 +2,7 @@ package sample;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Abstract class containing a number of file related functions
@@ -13,7 +14,7 @@ public abstract class FileUtils {
      * @param fname File name
      * @return Contents of file as an ArrayList of Strings
      */
-    public static ArrayList<String> read(String fname) {
+    static ArrayList<String> read(String fname) {
         try {
             File file = new File(fname);
 
@@ -29,6 +30,30 @@ public abstract class FileUtils {
 
         } catch (Exception e) {e.printStackTrace();}
         return null;
+    }
+
+    static HashMap<String, Integer> readToMap(String fname, String delimeter) {
+        HashMap<String, Integer> map = new HashMap<>();
+        ArrayList<String> file = FileUtils.read(fname);
+        if (file == null) return null;
+        for (String line : file) {
+            String[] s = line.split(delimeter); // str num val
+            String str = s[0];
+            int val = Integer.parseInt(s[2]);
+
+            map.put(str, val);
+        }
+        return map;
+    }
+
+    static Trie readToTrie(String fname) {
+        Trie out = new Trie();
+        ArrayList<String> file = read(fname);
+        if (file == null) return null;
+        for (String line : file) {
+            out.add(line);
+        }
+        return out;
     }
 
     /**

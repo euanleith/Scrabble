@@ -3,14 +3,13 @@ package sample;
 import java.util.ArrayList;
 import java.util.Random;
 
-import static sample.ButtonUtils.areLines;
-import static sample.ButtonUtils.getConnections;
+import static sample.ButtonUtils.*;
 import static sample.FileUtils.read;
-import static sample.Main.NUM_PIECES;
-import static sample.Main.RACK_SIZE;
+import static sample.Main.*;
+import static sample.MathsUtils.sortFromAngle;
 import static sample.MathsUtils.thereExists;
 
-public class Board {
+class Board {
     private Tile[][] board;
     private CircularArray<Player> players;
     private ArrayList<Tile> bag;
@@ -26,8 +25,7 @@ public class Board {
      * @param players array of players
      */
     Board(int width, int height, CircularArray<Player> players) {
-//        initBoard(width, height);
-        board = new Tile[width][height];
+        initBoard(width, height);
 
         this.players = players;
 
@@ -36,18 +34,45 @@ public class Board {
         giveInitTiles();
     }
 
-    //todo
     /**
-     * Initialises the board with various empty tiles
+     * Initialises the board with various BoardTiles,
+     * as described by 'boardTiles'
      * @param width width of the board
      * @param height height of the board
      */
     private void initBoard(int width, int height) {
         board = new Tile[width][height];
 
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
-//                board[i][j] = new Tile("", -1);
+        initBoardTiles();
+
+        for (int i = 0; i < boardTiles.length; i++) {
+            for (int j  = 0; j < boardTiles[i].length; j++) {
+                board[i][j] = new BoardTile(boardTiles[i][j]);
+            }
+        }
+    }
+
+    /**
+     * Initialises each tile on the board with the relevant type
+     * as determined by boardTiles
+     */
+    private static void initBoardTiles() {
+        ArrayList<String> boardTilesList = read("src/sample/board_tiles.txt");
+        if (boardTilesList == null) {
+            System.out.println("no board tiles..?");
+            return;
+        }
+        String[] boardTilesLines = ArrUtils.toArr(boardTilesList);
+
+        for (int i = 0; i < boardTilesLines.length; i++) {
+            String[] temp = boardTilesLines[i].split(" ");
+            int iMul = (boardTilesLines.length*2)-2-i;
+            for (int j = 0; j < temp.length; j++) {
+                int jMul = (boardTilesLines.length*2)-2-j;
+                boardTiles[i][j] = temp[j];
+                boardTiles[iMul][j] = temp[j];
+                boardTiles[i][jMul] = temp[j];
+                boardTiles[iMul][jMul] = temp[j];
             }
         }
     }
@@ -59,13 +84,18 @@ public class Board {
         bag = new ArrayList<>(NUM_PIECES);
 
         ArrayList<String> tileInfos = read("src/sample/tiles.txt");
+        if (tileInfos == null) {
+            System.out.println("no tiles..?");
+            return;
+        }
+
         for (String tileInfo : tileInfos) {
             String[] s = tileInfo.split(" "); // str num val
             String str = s[0];
             int num = Integer.parseInt(s[1]);
 
             for (int j = 0; j < num; j++) {
-                Tile tile = new Tile(str);
+                UserTile tile = new UserTile(str);
                 tile.setEvent(e -> Main.currentTile = tile);
                 bag.add(tile);
             }
@@ -77,9 +107,12 @@ public class Board {
      */
     private void giveInitTiles() {
         for (Player player : players) {
-            for (int i = 0; i < RACK_SIZE; i++) {
+            for (int i = 0; i < RACK_SIZE-1; i++) {
                 player.getRack().add(getFromBag());
             }
+            UserTile tile = new UserTile("Blank");
+            tile.setEvent(e -> Main.currentTile = tile);
+            player.getRack().add(tile);
         }
     }
 
@@ -94,32 +127,46 @@ public class Board {
     }
 
     /**
-     * Returns if the list of tiles form a valid move, i.e.;
-     * Are in a line, are connected,
-     * and those connections form valid words
-     * @param tiles list of tiles
+     * Checks if the list of tiles placed form a valid move,
+     * when combined with any surrounding connected tiles, i.e.;
+     * are in a connected line and
+     * the strings made from those connections form valid words
+     * @param newTiles list of new tiles placed this turn by a player
      * @return true if the list of tiles forms a valid move, false otherwise.
      */
-    public int move(ArrayList<Tile> tiles) {
-        if (tiles.isEmpty()) return 0;
-        ArrayList<ArrayList<Tile>> connections = getConnections(tiles, board);
-        if (connections.size() == 0) {
-            if (!thereExists(tiles,ButtonUtils::isInCentre)) return -1;
-            else connections.add(tiles);
-        }
-        if (!areLines(connections)) return -1;
-        return Dictionary.areValidWords(ButtonUtils.toString(connections));
-    }
+    int move(ArrayList<Tile> newTiles) {
+        if (newTiles.isEmpty()) return 0;
 
-    CircularArray<Player> getPlayers() {
-        return players;
+        // get list of tile lists made from surrounding tiles
+        ArrayList<ArrayList<Tile>> tileLists = getConnections(newTiles, board);
+        System.out.println("number of connections: " + tileLists.size());
+
+        // if not connected
+        if (tileLists.isEmpty()) {
+            // if first move
+            if (thereExists(newTiles,ButtonUtils::isInCentre)) tileLists.add(newTiles);
+            else return -1;
+        }
+
+        // sort tileLists by angles
+        for (ArrayList<Tile> connection : tileLists) {
+            double angle = getAngle(connection);
+            sortFromAngle(connection, angle, Tile::getX, Tile::getY);
+        }
+
+        // if any tileLists aren't in a line
+        if (thereExists(tileLists, c -> !isLine(c))) return -1;
+
+        // if strings made by tileLists are valid
+        ArrayList<ArrayList<UserTile>> userConnections = toUserTile(tileLists);
+        return Dictionary.getScores(userConnections, boardTiles);
     }
 
     /**
      * Refills the rack of the player who just went,
      * then moves to the next turn,
      */
-    public void nextTurn() {
+    void nextTurn() {
         refillRack();
     }
 
@@ -134,6 +181,22 @@ public class Board {
     }
 
     /**
+     * Returns the matrix
+     * @return the matrix
+     */
+    Tile[][] getBoard() {
+        return board;
+    }
+
+    /**
+     * Returns the CircularArray of players
+     * @return the CircularArray of players
+     */
+    CircularArray<Player> getPlayers() {
+        return players;
+    }
+
+    /**
      * Returns the player who's turn it currently is
      * @return the player who's turn it currently is
      */
@@ -141,11 +204,10 @@ public class Board {
         return players.peek();
     }
 
-    Tile setTile(int i, int j, String txt) {
-        board[i][j] = new Tile(txt);
-        return board[i][j];
-    }
-
+    /**
+     * Returns a string representation of the scores of the players
+     * @return a string representation of the scores of the players
+     */
     String getScores() {
         String scores = "Scores:\n";
         for (Player player : players) {

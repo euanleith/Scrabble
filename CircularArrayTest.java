@@ -7,6 +7,18 @@ import static org.junit.Assert.*;
 public class CircularArrayTest {
 
     @Test
+    public void testConstructor() {
+        CircularArray<String> arr = new CircularArray<>();
+
+        arr = new CircularArray<>(5);
+        assertEquals(0, arr.size());
+
+        arr = new CircularArray<>("a","d","b");
+        assertEquals(3, arr.size());
+        assertEquals("[a, d, b, null, null, null, null, null, null, null]", arr.toString());
+    }
+
+    @Test
     public void testAdd() {
         CircularArray<Integer> arr = new CircularArray<>(3);
         arr.add(1);

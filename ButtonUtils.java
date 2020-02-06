@@ -30,17 +30,17 @@ public abstract class ButtonUtils {//todo name
      * @param tiles list of tiles
      * @return a string concatenation of a list of tiles' texts'
      */
-    public static String toString(List<Tile> tiles) {
+    public static String toString(List<UserTile> tiles) {
         String str = "";
-        for (Tile tile : tiles) {
+        for (UserTile tile : tiles) {
             str += tile.getText();
         }
         return str;
     }
 
-    public static ArrayList<String> toString(ArrayList<ArrayList<Tile>> tiles) {
+    public static ArrayList<String> toString(ArrayList<ArrayList<UserTile>> tiles) {
         ArrayList<String> result = new ArrayList<>();
-        for (ArrayList<Tile> list : tiles) {
+        for (ArrayList<UserTile> list : tiles) {
             result.add(toString(list));
         }
         return result;
@@ -53,18 +53,20 @@ public abstract class ButtonUtils {//todo name
      * @param tiles list of tiles
      * @return string of tile and tiles
      */
-    public static String toString(Tile tile, ArrayList<Tile> tiles) {
+    public static String toString(UserTile tile, ArrayList<UserTile> tiles) {
         String str = "";
 
-        ArrayList<Tile> sorted = new ArrayList<>(tiles);
+        ArrayList<Tile> temp = new ArrayList<>(tiles);
+        temp.add(tile);
+
+        double angle = getAngle(temp);
+
+        ArrayList<UserTile> sorted = new ArrayList<>(tiles);
         sorted.add(tile);
 
-        double angle = getAngle(sorted);
-
-        //todo might want getX() instead of getLayoutX()?
         MathsUtils.sortFromAngle(sorted, angle, Tile::getX, Tile::getY);
 
-        for (Tile t : sorted) {
+        for (UserTile t : sorted) {
             str += t.getText();
         }
         return str;
@@ -82,23 +84,21 @@ public abstract class ButtonUtils {//todo name
                 GridPane.getRowIndex(img) == (pane.getColumnCount()/2);
     }
 
-    //todo remove duplicates? (not always... just -)
     /**
-     * todo
-     * @param tiles
-     * @param board
-     * @return
+     * Returns the list of tile lists that are made from the combination of
+     * those tiles and any connected tiles
+     * @param tiles list of tiles
+     * @param board set the tiles are elements of
+     * @return the list of connected tile lists
      */
     static ArrayList<ArrayList<Tile>> getConnections(ArrayList<Tile> tiles, Tile[][] board) {
-        double angle = getAngle(tiles);
         ArrayList<ArrayList<Tile>> connections = new ArrayList<>();
         for (Tile tile : tiles) {
             ArrayList<Tile> surrounding = getSurroundingTiles(tile, tiles, board);
             for (Tile connected : surrounding) {
                 ArrayList<Tile> newList = new ArrayList<>(tiles);
                 newList.add(connected);
-                MathsUtils.sortFromAngle(newList, angle, Tile::getX, Tile::getY);
-                connections.add(newList);
+                if (!connections.contains(newList)) connections.add(newList);//todo might not work for two separate connections with the same string (i think it will though)
             }
         }
         return connections;
@@ -113,18 +113,18 @@ public abstract class ButtonUtils {//todo name
      * that are within the confines of the board
      */
     static ArrayList<Tile> getSurroundingTiles(Tile tile, ArrayList<Tile> tiles, Tile[][] board) {
-        ArrayList<Tile> surrounding = new ArrayList<>();//todo~
+        ArrayList<Tile> surrounding = new ArrayList<>();
         ArrayList<Pair<Integer, Integer>> positions = new ArrayList<>();
         positions.add(new Pair<>(0,-1));
         positions.add(new Pair<>(-1,0));
         positions.add(new Pair<>(1,0));
         positions.add(new Pair<>(0,1));
         for (Pair<Integer, Integer> pos : positions) {
-            int x = GridPane.getColumnIndex(tile.getImg()) + pos.getKey();
-            int y = GridPane.getRowIndex(tile.getImg()) + pos.getValue();
+            int y = GridPane.getColumnIndex(tile.getImg()) + pos.getKey();//todo wrong way around??
+            int x = GridPane.getRowIndex(tile.getImg()) + pos.getValue();
             if (x >= 0 && x < board.length &&
                     y >= 0 && y < board[x].length &&
-                    !board[x][y].getText().equals(Main.BLANK) &&//todo this will need to be changed when what denotes a used board tile changes
+                    !(board[x][y].getClass() == BoardTile.class) &&
                     !tiles.contains(board[x][y])) {
                 surrounding.add(board[x][y]);
             }
@@ -145,12 +145,12 @@ public abstract class ButtonUtils {//todo name
         int x = GridPane.getRowIndex(tile.getImg());
         int y = GridPane.getColumnIndex(tile.getImg());//todo wrong way around?
         ArrayList<Tile> surrounding = getSurrounding(x, y, board);
-        surrounding.removeIf(b -> b.getText().equals("") || tiles.contains(b));
+        surrounding.removeIf(b -> b.getClass() == BoardTile.class || tiles.contains(b));
         return surrounding;
     }
 
     /**
-     * Checks if the list of tiles are in a connected line
+     * Checks if the elements of a list of tiles are in a todo connected? line
      * @param tiles tile list
      * @return true if the list is in a line, false otherwise
      */
@@ -167,13 +167,6 @@ public abstract class ButtonUtils {//todo name
             double angle = MathsUtils.getAngle(p1.getX(), p1.getY(), p2.getX(), p2.getY());
             if (angle % 90 != 0 || (i != 0 && angle != prevAngle) || !areConnected(p1, p2)) return false;
             prevAngle = angle;
-        }
-        return true;
-    }
-
-    public static boolean areLines(ArrayList<ArrayList<Tile>> tiles) {
-        for (ArrayList<Tile> list : tiles) {
-            if (!isLine(list)) return false;
         }
         return true;
     }
@@ -217,5 +210,21 @@ public abstract class ButtonUtils {//todo name
             }
         }
         grid.getChildren().remove(tile.getImg());
+    }
+
+    /**
+     * Converts a 2d list of Tiles to UserTiles
+     * @param in 2d list of Tiles
+     * @return 2d list of UserTiles
+     */
+    public static ArrayList<ArrayList<UserTile>> toUserTile(ArrayList<ArrayList<Tile>> in) {
+        ArrayList<ArrayList<UserTile>> out = new ArrayList<>(in.size());
+        for (ArrayList<Tile> tiles : in) {
+            out.add(new ArrayList<>(tiles.size()));
+            for (Tile t : tiles) {
+                out.get(out.size()-1).add((UserTile) t);
+            }
+        }
+        return out;
     }
 }

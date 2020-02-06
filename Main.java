@@ -3,6 +3,7 @@ package sample;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
@@ -24,7 +25,7 @@ import static sample.TileUtils.getImgs;
 Major
 Special board tiles
 General error checks and responses(e.g. invalid move)
-todo blanks not working
+todo blanks not working properly
 
 Medium
 Add ability to draw new rack
@@ -38,27 +39,29 @@ trie for dictionary
 
 public class Main extends Application {
 
-    private static final int SCREEN_WIDTH = 700;
-    private static final int SCREEN_HEIGHT = 600;
+    private static final int SCREEN_WIDTH = 800;
+    private static final int SCREEN_HEIGHT = 700;
     private static final int BOARD_WIDTH = 15;
     private static final int BOARD_HEIGHT = 15;
     final static int NUM_PIECES = 100;
     final static int RACK_SIZE = 7;
     private static final int MAX_PLAYERS = 4;
     private static final int MIN_PLAYERS = 2;
+    final static String[][] boardTiles = new String[BOARD_WIDTH][BOARD_HEIGHT];
 
-    static final String BLANK = "Empty";
+    static final String BLANK = "Blank";
 
-    private Scene menuScene, gameScene, setupScene;
+    private Scene menuScene, setupScene, gameScene, nextTurnScene;
 
     private Board board;
 
-    static Tile currentTile; // tile last clicked on
-    private GridPane currentRack;//todo rack in Player could be GridPane?
+    //todo could be parameters to funcs?
+    static UserTile currentTile; // tile last clicked on
+    private GridPane currentRack;
     private ArrayList<Tile> currentTurnTiles; // tiles that have been placed this turn
 
     @Override
-    public void start(Stage stage) throws Exception {
+    public void start(Stage stage) {
         menuScene = initMenuScene(stage);
 
         stage.setScene(menuScene);
@@ -103,180 +106,6 @@ public class Main extends Application {
         return new Scene(menu, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
 
-    /**
-     * Initialises game scene with nodes;
-     * Racks: 1 seen rack for currentPlayer which can be interacted with,
-     * and 1-3 unseen racks which are static.
-     * Main Board: GridPane of empty tiles, some of which have attributes.
-     * These interact with the tiles from the racks.
-     * Side buttons: menu and quit buttons, and a next turn button.
-     * Called when 'Resume Game' or 'Start Game' are clicked
-     * @param stage Primary stage
-     * @return Game Scene
-     */
-    private Scene initGameScene(Stage stage, CircularArray<Player> players) {
-
-        // init board
-        board = new Board(BOARD_WIDTH, BOARD_HEIGHT, players);
-
-        // draw racks, board, and menu
-        BorderPane border = new BorderPane();
-
-        drawBlankRacks(border);
-        currentRack = drawNextRack(border);
-
-        border.setCenter(drawBoard());
-
-        border.setRight(drawBoardMenu(stage, border));
-
-        return new Scene(border, SCREEN_WIDTH, SCREEN_HEIGHT);
-    }
-
-    /**
-     * Event for when empty board tile is clicked
-     * Sets board tile to currentTile,
-     * removes currentTile from currentPlayer's rack,
-     * resets currentTile
-     * @param boardTile board tile
-     */
-    private void setToCurrentTile(Tile boardTile) {
-        if (currentTile == null) return;
-
-        // add current tile to board
-        boardTile.set(currentTile.getText());
-        boardTile.setEvent(e -> returnToCurrentRack(boardTile));
-        currentTurnTiles.add(boardTile);
-
-        // remove current tile from rack
-        board.currentPlayer().getRack().remove(currentTile);
-        remove(currentRack, currentTile);
-        currentTile = null;
-    }
-
-    /**
-     * Event for when non-empty board tile is clicked
-     * Creates a new tile replicating the clicked tile,
-     * adds this tile to currentPlayer's rack,
-     * resets the board tile to empty and removes it from currentTurnTiles
-     * @param boardTile board tile
-     */
-    private void returnToCurrentRack(Tile boardTile) {
-        // add tile to rack
-        Tile rackTile = new Tile(boardTile.getText());
-        rackTile.setEvent(e -> currentTile = rackTile);
-        board.currentPlayer().getRack().add(rackTile);
-        currentRack.add(rackTile.getImg(), board.currentPlayer().getRack().size(), 0);
-
-        // reset old tile
-        boardTile.set(BLANK);
-        boardTile.setEvent(e2 -> setToCurrentTile(boardTile));
-        currentTurnTiles.remove(boardTile);
-        currentTile = null;
-    }
-
-    /**
-     * Create tiles for blank racks at top, left, and right borders respectively
-     * Called when a new game is started.
-     * @param border BorderPane of the Scene
-     */
-    private void drawBlankRacks(BorderPane border) {
-        for (int j = 1; j < board.getPlayers().size(); j++) {
-            GridPane rack = new GridPane();
-
-            // create tiles
-            for (int i = 0; i < RACK_SIZE; i++) {
-                Tile tile = new Tile(BLANK);
-                if (j < 2) rack.add(tile.getImg(), i, 0);
-                else rack.add(tile.getImg(), 0, i);
-            }
-
-            // add rack to pane
-            switch (j) {
-                case 1:
-                    border.setTop(rack);
-                    break;
-                case 2:
-                    border.setLeft(rack);
-                    break;
-                case 3:
-                    border.setRight(rack);
-                    break;
-                default:
-                    // invalid
-                    break;
-            }
-        }
-    }
-
-    /**
-     * Draw currentPlayer's rack
-     * Called at the start of each player's turn.
-     * @param border BorderPane of the Scene
-     * @return currentPlayer's rack as a GridPane
-     */
-    private GridPane drawNextRack(BorderPane border) {
-
-        // reset current turn tiles
-        if (currentTurnTiles != null) {
-            for (Tile tile : currentTurnTiles) {
-                tile.setEvent(null);
-            }
-        }
-        currentTurnTiles = new ArrayList<>(RACK_SIZE);
-
-        // set visible rack to new current player's rack
-        GridPane rack = new GridPane();
-//        rack.addRow(0, board.currentPlayer().getRackImgs());
-        rack.addRow(0, getImgs(board.currentPlayer().getRack()));
-        border.setBottom(rack);
-        return rack;
-    }
-
-    private GridPane drawBoard() {
-        GridPane grid = new GridPane();
-        grid.setPadding(new Insets(10, 10, 10, 10));
-        for (int i = 0; i < BOARD_WIDTH; i++) {
-            for (int j = 0; j < BOARD_HEIGHT; j++) {
-                Tile tile = board.setTile(i,  j, BLANK);
-                tile.setEvent(e -> setToCurrentTile(tile));
-                grid.add(tile.getImg(), i, j);
-            }
-        }
-        return grid;
-    }
-
-    private GridPane drawBoardMenu(Stage stage, BorderPane border) {
-        GridPane side = new GridPane();
-        Button menu = new Button("Menu");
-        menu.setOnAction(e -> stage.setScene(menuScene));
-        Button quit = new Button("Quit");
-        quit.setOnAction(e -> System.exit(0));
-        Button scores = new Button(board.getScores());
-        Button finishTurn = new Button("Finish turn");
-        finishTurn.setOnAction(e -> {
-            int score = board.move(currentTurnTiles);
-            if (score != -1) {
-                board.currentPlayer().add(score);
-                scores.setText(board.getScores());
-                board.nextTurn();
-                currentRack = drawNextRack(border);
-            } else { // if invalid move
-                Text text = new Text("Invalid move!");
-                side.addRow(BOARD_WIDTH+3, text);
-                stage.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<>() {
-                    @Override
-                    public void handle(javafx.scene.input.MouseEvent event){
-                        side.getChildren().remove(text);
-                        stage.removeEventFilter(MouseEvent.MOUSE_PRESSED, this);
-                    }
-                });
-            }
-        });
-        side.addRow(BOARD_WIDTH+1, finishTurn, menu, quit);
-        side.addRow(BOARD_WIDTH+2, scores);
-        return side;
-    }
-
     private Scene initSetupScene(Stage stage) {
         HBox scene = new HBox();
         scene.setSpacing(37);
@@ -313,6 +142,7 @@ public class Main extends Application {
         Button submit = new Button("Start game");
         submit.setOnAction(e -> {
             gameScene = initGameScene(stage, parsePlayers(players));
+//            nextTurnScene = initNextTurnScene(stage);
             stage.setScene(gameScene);
         });
 
@@ -354,5 +184,201 @@ public class Main extends Application {
             players.add(new Player(((TextField)((HBox)vbox.getChildren().get(i)).getChildren().get(0)).getText()));
         }
         return players;
+    }
+
+    /**
+     * Initialises game scene with nodes;
+     * Racks: 1 seen rack for currentPlayer which can be interacted with,
+     * and 1-3 unseen racks which are static.
+     * Main Board: GridPane of empty tiles, some of which have attributes.
+     * These interact with the tiles from the racks.
+     * Side buttons: menu and quit buttons, and a next turn button.
+     * Called when 'Resume Game' or 'Start Game' are clicked
+     * @param stage Primary stage
+     * @return Game Scene
+     */
+    private Scene initGameScene(Stage stage, CircularArray<Player> players) {
+
+        // init board
+        board = new Board(BOARD_WIDTH, BOARD_HEIGHT, players);
+
+        // draw racks, board, and menu
+        BorderPane border = new BorderPane();
+
+        drawBlankRacks(border);
+        currentRack = drawNextRack(border);
+
+        border.setCenter(drawBoard());
+
+        border.setRight(drawBoardMenu(stage, border));
+
+        return new Scene(border, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+
+    /**
+     * Event for when empty board tile is clicked
+     * Sets board tile to currentTile,
+     * removes currentTile from currentPlayer's rack,
+     * resets currentTile
+     * @param boardTile board tile
+     */
+    private void setToCurrentTile(BoardTile boardTile, GridPane grid) {
+        if (currentTile == null) return;
+
+        // add current tile to board
+        UserTile newTile = new UserTile(currentTile.getText());
+        newTile.setEvent(e -> returnToCurrentRack(newTile, grid));
+        int row = GridPane.getRowIndex(boardTile.getImg());
+        int col = GridPane.getColumnIndex(boardTile.getImg());
+        board.getBoard()[row][col] = newTile;
+        grid.add(newTile.getImg(), col, row);
+        currentTurnTiles.add(newTile);
+
+        // remove current tile from rack
+        board.currentPlayer().getRack().remove(currentTile);
+        remove(currentRack, currentTile);
+        currentTile = null;
+    }
+
+    /**
+     * Event for when non-empty board tile is clicked
+     * Creates a new tile replicating the clicked tile,
+     * adds this tile to currentPlayer's rack,
+     * resets the board tile to empty and removes it from currentTurnTiles
+     * @param boardTile board tile
+     */
+    private void returnToCurrentRack(UserTile boardTile, GridPane grid) {
+        // add tile to rack
+        UserTile rackTile = new UserTile(boardTile.getText());
+        rackTile.setEvent(e -> currentTile = rackTile);
+        board.currentPlayer().getRack().add(rackTile);
+        currentRack.add(rackTile.getImg(), board.currentPlayer().getRack().size(), 0);
+
+        // reset old tile
+        int row = GridPane.getRowIndex(boardTile.getImg());
+        int col = GridPane.getColumnIndex(boardTile.getImg());
+        BoardTile newTile = new BoardTile(boardTiles[row][col]);
+        newTile.setEvent(e2 -> setToCurrentTile(newTile, grid));
+        board.getBoard()[row][col] = newTile;
+        grid.add(newTile.getImg(), col, row);
+        currentTurnTiles.remove(boardTile);
+        currentTile = null;
+    }
+
+    /**
+     * Create tiles for blank racks at top, left, and right borders respectively
+     * Called when a new game is started.
+     * @param border BorderPane of the Scene
+     */
+    private void drawBlankRacks(BorderPane border) {
+        for (int j = 1; j < board.getPlayers().size(); j++) {
+            GridPane rack = new GridPane();
+
+            // create tiles
+            for (int i = 0; i < RACK_SIZE; i++) {
+                Tile tile = new UserTile(BLANK);
+                if (j < 2) rack.add(tile.getImg(), i, 0);
+                else rack.add(tile.getImg(), 0, i);
+            }
+
+            // add rack to pane
+            switch (j) {
+                case 1:
+                    border.setTop(rack);
+                    break;
+                case 2:
+                    border.setLeft(rack);
+                    break;
+                case 3:
+                    border.setRight(rack);
+                    break;
+                default:
+                    // invalid
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Draw currentPlayer's rack
+     * Called at the start of each player's turn.
+     * @param border BorderPane of the Scene
+     * @return currentPlayer's rack as a GridPane
+     */
+    private GridPane drawNextRack(BorderPane border) {
+
+        // reset current turn tiles
+        if (currentTurnTiles != null) {
+            for (Tile tile : currentTurnTiles) {
+                tile.setEvent(null);
+            }
+        }
+        currentTurnTiles = new ArrayList<>(RACK_SIZE);
+
+        // set visible rack to new current player's rack
+        GridPane rack = new GridPane();
+        rack.addRow(0, getImgs(board.currentPlayer().getRack()));
+        border.setBottom(rack);
+        return rack;
+    }
+
+    private GridPane drawBoard() {
+        GridPane grid = new GridPane();
+        grid.setPadding(new Insets(10, 10, 10, 10));
+        for (int i = 0; i < BOARD_WIDTH; i++) {
+            for (int j = 0; j < BOARD_HEIGHT; j++) {
+                BoardTile tile = (BoardTile) board.getBoard()[i][j];
+                tile.setEvent(e -> setToCurrentTile(tile, grid));
+                grid.add(tile.getImg(), i, j);
+            }
+        }
+        return grid;
+    }
+
+    private GridPane drawBoardMenu(Stage stage, BorderPane border) {
+        GridPane side = new GridPane();
+        Button menu = new Button("Menu");
+        menu.setOnAction(e -> stage.setScene(menuScene));
+        Button quit = new Button("Quit");
+        quit.setOnAction(e -> System.exit(0));
+        Button scores = new Button(board.getScores());
+        Button finishTurn = new Button("Finish turn");
+        finishTurn.setOnAction(e -> {
+            int score = board.move(currentTurnTiles);
+            if (score != -1) {
+                board.currentPlayer().add(score);
+                scores.setText(board.getScores());
+                board.nextTurn();
+                currentRack = drawNextRack(border);
+                stage.setScene(initNextTurnScene(stage));
+            } else { // if invalid move
+                Text text = new Text("Invalid move!");
+                side.addRow(BOARD_WIDTH+3, text);
+                stage.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<>() {
+                    @Override
+                    public void handle(javafx.scene.input.MouseEvent event){
+                        side.getChildren().remove(text);
+                        stage.removeEventFilter(MouseEvent.MOUSE_PRESSED, this);
+                    }
+                });
+            }
+        });
+        side.addRow(BOARD_WIDTH+1, finishTurn, menu, quit);
+        side.addRow(BOARD_WIDTH+2, scores);
+        return side;
+    }
+
+    Scene initNextTurnScene(Stage stage) {
+        VBox vbox = new VBox();
+        vbox.setSpacing(10);
+        vbox.setAlignment(Pos.CENTER);
+
+        Text playersTurn = new Text(board.currentPlayer().getName() + "'s turn");
+        Button startTurn = new Button("Start turn");
+        startTurn.setOnAction(e -> stage.setScene(gameScene));
+
+        vbox.getChildren().addAll(playersTurn, startTurn);
+
+        return new Scene(vbox, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
 }

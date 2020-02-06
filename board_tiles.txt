@@ -1,0 +1,8 @@
+triple_word std std double_letter std std std triple_word
+std double_word std std std triple_letter std std
+std std double_word std std std double_letter std
+double_letter std std double_word std std std double_letter
+std std std std double_word std std std
+std triple_letter std std std triple_letter std std
+std std double_letter std std std double_letter std
+triple_word std std double_letter std std std centre

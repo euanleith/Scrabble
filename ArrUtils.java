@@ -8,7 +8,7 @@ public abstract class ArrUtils {
 
     public static <T>int indexOf(T[] arr, T s) {
         for (int i = 0; i < arr.length; i++) {
-            if (arr[i] == s) return i;
+            if (arr[i].equals(s)) return i;//todo note changed from == to equals()
         }
         return -1;
     }
@@ -16,7 +16,7 @@ public abstract class ArrUtils {
     public static <T>int[] indexOf(T[][] arr, T s) {
         for (int i = 0; i < arr.length; i++) {
             for (int j = 0; j < arr[i].length; j++) {
-                if (arr[i][j] == s) return new int[]{i,j};
+                if (arr[i][j].equals(s)) return new int[]{i,j};
             }
         }
         return null;
@@ -67,5 +67,29 @@ public abstract class ArrUtils {
             if (!list.isEmpty()) return false;
         }
         return true;
+    }
+
+//    static <T>T[] toArr(ArrayList<T> list) {
+//        T[] arr = new T[list.size()];
+//        for (int i = 0; i < list.size(); i++) {
+//            arr[i] = list.get(i);
+//        }
+//        return arr;
+//    }
+
+    static String[] toArr(ArrayList<String> list) {
+        String[] arr = new String[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            arr[i] = list.get(i);
+        }
+        return arr;
+    }
+
+    static String toString(String[] arr) {
+        String out = "";
+        for (String str : arr) {
+            out += str;
+        }
+        return out;
     }
 }
