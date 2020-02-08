@@ -1,11 +1,8 @@
 package sample;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
-//todo clean
-public class Trie {
+class Trie {
 
     /**
      * Class Node with a char value, a parent, and children.
@@ -67,34 +64,33 @@ public class Trie {
      * @param word word to be added
      */
     void add(String word) {
-        HashMap<Character, Node> children = root.children;
         Node parent = root;
+        HashMap<Character, Node> children = parent.children;
 
         for (int i = 0; i < word.length(); i++) {
             char c = word.charAt(i);
 
-            Node t;
+            Node child;
             if (children.containsKey(c)) {
                 //go down that branch
-                t = children.get(c);
+                child = children.get(c);
             } else if (Character.isUpperCase(c) &&
                     children.containsKey((char)(c+0x20))) {
-                t = children.get((char)(c+0x20));
+                child = children.get((char)(c+0x20));
             } else if (Character.isLowerCase(c) &&
                     children.containsKey((char)(c-0x20))) {
-                t = children.get((char)(c-0x20));
+                child = children.get((char)(c-0x20));
             } else { // if no child node exists
                 // add a new branch
-                t = new Node(c, parent);
-                children.put(c, t);
+                child = new Node(c, parent);
+                children.put(c, child);
             }
 
-            children = t.children; // go down to next level of branch (if there is one)
-            parent = t; // set new parent
-
             // set leaf node
-            if (i == word.length()-1)
-                t.isLeaf = true;
+            if (i == word.length()-1) child.isLeaf = true;
+
+            parent = child; // set new parent
+            children = child.children; // go down to next level of branch (if there is one)
         }
     }
 
@@ -133,7 +129,7 @@ public class Trie {
      * @param prefix prefix to be queried
      * @return true if there exists a word that starts with the given prefix, false otherwise
      */
-    public boolean startsWith(String prefix) {
+    boolean startsWith(String prefix) {
         return searchNode(prefix) != null;
     }
 
@@ -142,7 +138,7 @@ public class Trie {
      * @param str string to be queried
      * @return the node if it is in the trie, otherwise null
      */
-    Node searchNode(String str) {
+    private Node searchNode(String str) {
         HashMap<Character, Node> children = root.children;
         Node t = null;
         for (int i = 0; i < str.length(); i++) {
@@ -163,99 +159,138 @@ public class Trie {
         return t;
     }
 
-    //gets all leaf nodes branching from a given root
-    //(incomplete) would be nice if ArrayList wasnt param
-    //weird with inputs with spaces?
-    ArrayList<String> getLeafNodes(Node root, ArrayList<String> leafNodes, String input) {
-        if (root.isLeaf) {
-            leafNodes.add(input);
-            return leafNodes;
+    /**
+     * Returns the string representations of all branch nodes from a given node
+     * by recursively adding strings to the list if the current node is a leaf
+     * Note: 'currentStr' is included for efficiency:
+     * instead of getting the string for each node that is a leaf,
+     * you can just append it with each child node's char
+     * @param node node
+     * @param branches list of strings from branches from the root node
+     * @param currentStr string of the current node excluding the current node's char value
+     * @return the string representations of all branch nodes from a given root node
+     */
+    private ArrayList<String> getLeafNodes(Node node, ArrayList<String> branches, String currentStr) {
+        if (node.isLeaf) branches.add(currentStr);
+
+        // for each node's children
+        for (HashMap.Entry<Character, Node> pair : node.children.entrySet()) {
+            String str = currentStr + pair.getKey();
+            getLeafNodes(pair.getValue(), branches, str);
         }
 
-        //for each node's children's char
-        HashMap<Character, Node> children = root.children;
-        for (HashMap.Entry<Character, Node> pair : children.entrySet()) {
-            String str = input + pair.getKey();//replace input with root's string
-            getLeafNodes(pair.getValue(), leafNodes, str);
-        }
-
-        return leafNodes;
+        return branches;
     }
 
-    //gets numResults leaf nodes branching from a given root
-    //note leafNodes is an array, not an ArrayList as it requires a finite, known length (numResults)
-    String[] getLeafNodes(Node root, String[] leafNodes, int numResults, String input) {
-        if (root.isLeaf) {
-            //leafNodes.add(root)
-            for (int i = 0; i < leafNodes.length; i++) {
-                if (leafNodes[i] == null) {
-                    leafNodes[i] = input;
-                    break;
-                }
-            }
-            numResults--;
-            return leafNodes;
+    /**
+     * Returns the string representations of all branch nodes from a given node
+     * by recursively adding strings to the list if the current node is a leaf
+     * Note: 'currentStr' is included for efficiency:
+     * instead of getting the string for each node that is a leaf,
+     * you can just append it with each child node's char
+     * @param node node
+     * @param branches list of strings from branches from the root node
+     * @param nResults the maximum number of nodes to be added to the list before returning
+     * @param currentStr string of the current node excluding the current node's char value
+     * @return the string representations of all branch nodes from a given root node
+     */
+   private ArrayList<String> getLeafNodes(Node node, ArrayList<String> branches, int nResults, String currentStr) {
+        if (node.isLeaf) branches.add(currentStr);
+
+        // if numResults have been found, return
+        if (branches.size() == nResults) return branches;
+
+        // for each node's children
+        for (HashMap.Entry<Character, Node> pair : node.children.entrySet()) {
+            String str = currentStr + pair.getKey();
+            getLeafNodes(pair.getValue(), branches, nResults, str);
+
+            // if numResults have been found, return
+            if (branches.size() == nResults) return branches;
         }
 
-
-        //for each node's children's char
-        HashMap<Character, Node> children = root.children;//only returning roots for one case
-        for (HashMap.Entry<Character, Node> pair : children.entrySet()) {
-            //if numResults have been found, return
-            if (leafNodes[leafNodes.length-1] != null) return leafNodes;
-            //str += pair.getKey();
-            String str = input + pair.getKey();
-            getLeafNodes(pair.getValue(), leafNodes, numResults, str);
-        }
-
-        return leafNodes;
+        return branches;
     }
 
-    //returns all search results for a given input
-    //(incomplete) add functionality: if input already = an author, go straight to their page
-    ArrayList<String> getSearchResults(String input) {
+    /**
+     * Returns an unordered list of strings which start with a given prefix
+     * @param prefix prefix to be searched
+     * @return a list of strings which start with a given prefix
+     */
+    ArrayList<String> search(String prefix) {
 
-        //get leafNodes
-        Node root = searchNode(input);
-        if (root != null) {
-            //get initial node's string value
-            String str = "";
-            Node node = root;
-            while (node.parent != null) {
-                str = node.c + str;
-                node = node.parent;
-            }
-            return getLeafNodes(root, new ArrayList<String>(), str);
-        } else return new ArrayList<String>();
+        Node root = searchNode(prefix);
+
+        if (root == null) return new ArrayList<>();
+
+        return getLeafNodes(root, new ArrayList<>(), toString(root));
     }
 
-    //returns numResults search results for a given input
-    //(incomplete) figure out how arr/arraylist stuff should work
-    ArrayList<String> getSearchResults(String input, int numResults) {
-        //if input already = an author, go straight to their page
-        //going through the trie might actually be faster
+    /**
+     * Returns an unordered list of strings which start with a given prefix
+     * @param prefix prefix to be searched
+     * @param nResults the maximum number of results to be returned
+     * @return a list of strings which start with a given prefix
+     */
+    ArrayList<String> search(String prefix, int nResults) {
 
-        //get leafNodes
-        String[] leafNodes = new String[numResults];
-        Node root = searchNode(input);
-        if (root != null) {
-            //get initial node's string value
-            String str = "";
-            Node node = root;
-            while (node.parent != null) {
-                str = node.c + str;
-                node = node.parent;
-            }
-            leafNodes = getLeafNodes(root, leafNodes, numResults, str);
-        }
+        Node root = searchNode(prefix);
 
-        //create ArrayList<String> of words from leafNodes
-        //(temp)
-        ArrayList<String> s = new ArrayList<>();
-        for (String node : leafNodes) {
-            if (node != null)
-                s.add(node);
+        if (root == null) return new ArrayList<>();
+
+        ArrayList<String> branches = new ArrayList<>(nResults);
+        return getLeafNodes(root, branches, nResults, toString(root));
+    }
+
+    /**
+     * Returns a string representation of a node
+     * by following its path to the root node
+     * @param in node
+     * @return a string representation of a node
+     */
+    private String toString(Node in) {
+        String out = "";
+        Node node = in;
+        while (node.parent != null) {
+            out = node.c + out;
+            node = node.parent;
         }
-        return s;
+        return out;
+    }
+
+    /**
+     * Returns true if the trie is empty
+     * @return true if the trie is empty, otherwise false
+     */
+    boolean isEmpty() {
+        return root.children.size() == 0;
+    }
+
+    //todo
+    /**
+     * Returns a string representation of the trie
+     * @return a multi-line string with the pretty ascii picture of the tree.
+     */
+    @Override
+    public String toString() {
+        if(isEmpty()) return "-null\n";
+        return toString(root, "") + "\n";
+    }
+
+    private String toString(Node parent, String prefix) {
+        String str = prefix + "-" + parent.c;
+        ArrayList<String> children = new ArrayList<>(parent.children.size());
+        for (Node child : parent.children.values()) {
+            children.add(toString(child, prefix));
+        }
+        return str + "\n" + toString(children);
+    }
+
+    private String toString(ArrayList<String> children) {
+        String out = "";
+        for (String child : children) {
+            out += child + "\n";
+        }
+        return out;
     }
 }

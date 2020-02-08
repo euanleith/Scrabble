@@ -1,10 +1,12 @@
 package sample;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 import static sample.ButtonUtils.*;
 import static sample.FileUtils.read;
+import static sample.FileUtils.readToMap;
 import static sample.Main.*;
 import static sample.MathsUtils.sortFromAngle;
 import static sample.MathsUtils.thereExists;
@@ -83,19 +85,15 @@ class Board {
     private void initBag() {
         bag = new ArrayList<>(NUM_PIECES);
 
-        ArrayList<String> tileInfos = read("src/sample/tiles.txt");
-        if (tileInfos == null) {
-            System.out.println("no tiles..?");
+        HashMap<String, Integer> alphabet = readToMap("src/sample/alphabet_freq.txt", " ");
+        if (alphabet == null) {
+            System.out.println("no alphabet..?");
             return;
         }
 
-        for (String tileInfo : tileInfos) {
-            String[] s = tileInfo.split(" "); // str num val
-            String str = s[0];
-            int num = Integer.parseInt(s[1]);
-
-            for (int j = 0; j < num; j++) {
-                UserTile tile = new UserTile(str);
+        for (HashMap.Entry<String, Integer> letter : alphabet.entrySet()) {
+            for (int j = 0; j < letter.getValue(); j++) {
+                UserTile tile = new UserTile(letter.getKey());
                 tile.setEvent(e -> Main.currentTile = tile);
                 bag.add(tile);
             }
@@ -107,12 +105,9 @@ class Board {
      */
     private void giveInitTiles() {
         for (Player player : players) {
-            for (int i = 0; i < RACK_SIZE-1; i++) {
+            for (int i = 0; i < RACK_SIZE; i++) {
                 player.getRack().add(getFromBag());
             }
-            UserTile tile = new UserTile("Blank");
-            tile.setEvent(e -> Main.currentTile = tile);
-            player.getRack().add(tile);
         }
     }
 
@@ -159,7 +154,7 @@ class Board {
 
         // if strings made by tileLists are valid
         ArrayList<ArrayList<UserTile>> userConnections = toUserTile(tileLists);
-        return Dictionary.getScores(userConnections, boardTiles);
+        return Dictionary.getValues(userConnections, boardTiles);
     }
 
     /**

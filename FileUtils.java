@@ -38,10 +38,10 @@ public abstract class FileUtils {
         if (file == null) return null;
         for (String line : file) {
             String[] s = line.split(delimeter); // str num val
-            String str = s[0];
-            int val = Integer.parseInt(s[2]);
+            String key = s[0];
+            int val = Integer.parseInt(s[1]);
 
-            map.put(str, val);
+            map.put(key, val);
         }
         return map;
     }

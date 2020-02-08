@@ -3,6 +3,7 @@ package sample;
 import java.util.*;
 
 //todo more like CircularIndexedArray or something
+//todo distinguish between size and capacity
 public class CircularArray<T> extends AbstractList<T>
         implements List<T>, RandomAccess, Cloneable, java.io.Serializable {
     private static final int DEFAULT_CAPACITY = 10;
@@ -64,6 +65,10 @@ public class CircularArray<T> extends AbstractList<T>
 
     public int size() {
         return size;
+    }
+
+    public int capacity() {
+        return arr.length;
     }
 
     @Override

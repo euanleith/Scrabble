@@ -13,7 +13,7 @@ public class DictionaryTest {
     @Test
     public void testGetScores() {
         GridPane grid = new GridPane();
-        Board board = new Board(15, 15, new CircularArray<>(new Player("Jim")));
+        Board board = new Board(15, 15, new CircularArray<>(new Player("Jim")));//todo shouldn't have to do this
 
         String[][] words = new String[][]{
                 new String[]{"W","O","R","D"},
@@ -37,16 +37,57 @@ public class DictionaryTest {
             }
             tiles.add(list);
 
-            if (valid[i]) assertNotEquals(-1, getScores(tiles, Main.boardTiles));
-            else assertEquals(-1, getScores(tiles, Main.boardTiles));
+            if (valid[i]) assertNotEquals(-1, getValues(tiles, Main.boardTiles));
+            else assertEquals(-1, getValues(tiles, Main.boardTiles));
         }
     }
 
     @Test
+    public void testGetScore() {
+        // test with null string
+        assertEquals(-1, getValue(null));
+
+        // test with no blanks
+        assertEquals(8, getValue("WORD"));
+        assertEquals(12, getValue("DIABOLISE"));
+
+        // test with one blank
+        assertEquals(9, getValue("WBlankRD"));
+        assertEquals(12, getValue("BlankIABOLISE"));
+
+        // test with multiple blanks
+        assertEquals(9, getValue("WBlankRBlank"));
+        assertEquals(14, getValue("BlankIABBlankBlankISE"));
+
+        // test with all blanks
+        assertEquals(2, getValue("Blank"));
+        assertEquals(6, getValue("BlankBlankBlank"));
+    }
+
+    @Test
     public void testIsValidWord() {
+        // test with null string
+        assertFalse(isValidWord(null));
+
+        // test with no blanks
         assertTrue(isValidWord("WORD"));
+        assertTrue(isValidWord("DIABOLISE"));
+
+        // test with one blank
         assertTrue(isValidWord("WBlankRD"));
-        String s = null;
-        assertFalse(isValidWord(s));
+        assertTrue(isValidWord("BlankIABOLISE"));
+        assertTrue(isValidWord("DIABlankOLISE"));
+        assertTrue(isValidWord("DIABBlankLISE"));
+
+        //todo some require iterative method
+        // test with multiple blanks
+        assertTrue(isValidWord("WBlankRBlank"));
+//        assertTrue(isValidWord("DIABlankOBlankISE"));
+//        assertTrue(isValidWord("DIABlankOBlankBlankSE"));
+
+        // test with all blanks
+//        assertTrue(isValidWord("Blank"));
+//        assertTrue(isValidWord("BlankBlank"));
+//        assertTrue(isValidWord("blankblankblankblank"));
     }
 }

@@ -15,6 +15,8 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 import java.util.ArrayList;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static sample.ButtonUtils.remove;
 import static sample.TileUtils.getImgs;
@@ -23,9 +25,9 @@ import static sample.TileUtils.getImgs;
 
 /*
 Major
-Special board tiles
 General error checks and responses(e.g. invalid move)
-todo blanks not working properly
+ai
+todo bug; see screenshots
 
 Medium
 Add ability to draw new rack
@@ -48,8 +50,6 @@ public class Main extends Application {
     private static final int MAX_PLAYERS = 4;
     private static final int MIN_PLAYERS = 2;
     final static String[][] boardTiles = new String[BOARD_WIDTH][BOARD_HEIGHT];
-
-    static final String BLANK = "Blank";
 
     private Scene menuScene, setupScene, gameScene, nextTurnScene;
 
@@ -179,9 +179,12 @@ public class Main extends Application {
      * @return list of players
      */
     private CircularArray<Player> parsePlayers(VBox vbox) {
-        CircularArray<Player> players = new CircularArray<>(vbox.getChildren().size());
-        for (int i = 0; i < players.size(); i++) {
-            players.add(new Player(((TextField)((HBox)vbox.getChildren().get(i)).getChildren().get(0)).getText()));
+        int size = vbox.getChildren().size();
+        CircularArray<Player> players = new CircularArray<>(size);
+        for (int i = 0; i < size; i++) {
+            HBox hbox = (HBox) vbox.getChildren().get(i);
+            TextField text = (TextField) hbox.getChildren().get(0);
+            players.add(new Player(text.getText()));
         }
         return players;
     }
@@ -276,7 +279,7 @@ public class Main extends Application {
 
             // create tiles
             for (int i = 0; i < RACK_SIZE; i++) {
-                Tile tile = new UserTile(BLANK);
+                Tile tile = new UserTile(Dictionary.getBlank());
                 if (j < 2) rack.add(tile.getImg(), i, 0);
                 else rack.add(tile.getImg(), 0, i);
             }
@@ -380,5 +383,27 @@ public class Main extends Application {
         vbox.getChildren().addAll(playersTurn, startTurn);
 
         return new Scene(vbox, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+
+    /**
+     * Get the time taken in nanoseconds for a function to run
+     * @param func function
+     * @param obj object parameter to the function
+     * @param <T> function input type
+     * @param <U> function output type
+     * @return time taken for function to run
+     */
+    static <T, U>long getTimeTaken(Function<T, U> func, T obj) {
+        final long start = System.nanoTime();
+        func.apply(obj);
+        final long end = System.nanoTime();
+        return end - start;
+    }
+
+    static <T, U, V>long getTimeTaken(BiFunction<T, U, V> func, T obj1, U obj2) {
+        final long start = System.nanoTime();
+        func.apply(obj1, obj2);
+        final long end = System.nanoTime();
+        return end - start;
     }
 }

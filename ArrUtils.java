@@ -3,35 +3,52 @@ package sample;
 import javafx.util.Pair;
 
 import java.util.ArrayList;
+import java.util.List;
 
-public abstract class ArrUtils {
+abstract class ArrUtils {
 
-    public static <T>int indexOf(T[] arr, T s) {
+    /**
+     * Returns the index of a given object in a given array
+     * @param arr array
+     * @param obj object
+     * @param <T> type of the object
+     * @return the index of the object if it's in the array, otherwise -1
+     */
+    static <T> int indexOf(T[] arr, T obj) {
         for (int i = 0; i < arr.length; i++) {
-            if (arr[i].equals(s)) return i;//todo note changed from == to equals()
+            if (arr[i].equals(obj)) return i;
         }
         return -1;
     }
 
-    public static <T>int[] indexOf(T[][] arr, T s) {
+    /**
+     * Returns the index of a given object in a given 2d array
+     * @param arr array
+     * @param obj object
+     * @param <T> type of the object
+     * @return the index of the object as an int array
+     * with two elements if it's in the array, otherwise -1
+     */
+    static <T>int[] indexOf(T[][] arr, T obj) {
         for (int i = 0; i < arr.length; i++) {
             for (int j = 0; j < arr[i].length; j++) {
-                if (arr[i][j].equals(s)) return new int[]{i,j};
+                if (arr[i][j].equals(obj)) return new int[]{i,j};
             }
         }
         return null;
     }
 
     //todo could probably generalise to any dimensions
+    //todo
     /**
-     * Returns the list of elements surrounding a given obj todo
+     * Returns the list of elements surrounding a given obj
      * @param x x index of the object
      * @param y y index of the object
-     * @param board
-     * @param <T>
+     * @param board matrix the object is an element of
+     * @param <T> type of the object
      * @return
      */
-    public static <T> ArrayList<T> getSurrounding(int x, int y, T[][] board) {
+    static <T> ArrayList<T> getSurrounding(int x, int y, T[][] board) {
         ArrayList<T> list = new ArrayList<>(8);
         ArrayList<Pair<Integer, Integer>> positions = new ArrayList<>();
         positions.add(new Pair<>(0,-1));
@@ -50,7 +67,7 @@ public abstract class ArrUtils {
         return list;
     }
 
-    public static <T> ArrayList<T> getSurrounding(T obj, T[][] board) {
+    static <T> ArrayList<T> getSurrounding(T obj, T[][] board) {
 //        int x = indexOf(board, obj);
 //        if (x == -1) return null;
 //        int y = indexOf(board[x], obj);
@@ -62,22 +79,28 @@ public abstract class ArrUtils {
         return getSurrounding(a[0], a[1], board);
     }
 
-    static <T>boolean isEmpty(ArrayList<ArrayList<T>> lists) {
-        for (ArrayList<T> list : lists) {
+    /**
+     * Returns true if the 2d list is empty
+     * @param lists 2d list
+     * @param <T> type of the list
+     * @return true if the 2d list is empty, false otherwise
+     */
+    static <T> boolean isEmpty(List<List<T>> lists) {
+        for (List<T> list : lists) {
             if (!list.isEmpty()) return false;
         }
         return true;
     }
 
-//    static <T>T[] toArr(ArrayList<T> list) {
-//        T[] arr = new T[list.size()];
-//        for (int i = 0; i < list.size(); i++) {
-//            arr[i] = list.get(i);
-//        }
-//        return arr;
-//    }
+    /**
+     * Converts a given String list to a String array
+     * note: can't do this for general types...
+     * @param list String lsit
+     * @return return a String array representation of the given String list
+     */
+    static String[] toArr(List<String> list) {
+        if (list == null) return null;
 
-    static String[] toArr(ArrayList<String> list) {
         String[] arr = new String[list.size()];
         for (int i = 0; i < list.size(); i++) {
             arr[i] = list.get(i);
@@ -85,11 +108,35 @@ public abstract class ArrUtils {
         return arr;
     }
 
+    /**
+     * Returns a string representation of an array with no delimiter between each element
+     * @param arr array
+     * @return a string representation of an array
+     */
     static String toString(String[] arr) {
+        if (arr == null) return null;
+
         String out = "";
         for (String str : arr) {
             out += str;
         }
+        return out;
+    }
+
+    /**
+     * Returns a string representation of an array with a given delimiter between each element
+     * @param arr array
+     * @param delimiter delimiter
+     * @return a string representation of an array
+     */
+    static String toString(String[] arr, String delimiter) {
+        if (arr == null) return null;
+
+        String out = "";
+        for (String str : arr) {
+            out += str + delimiter;
+        }
+        out = out.substring(0, out.length()-delimiter.length());
         return out;
     }
 }
