@@ -3,8 +3,10 @@ package sample;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import static sample.ButtonUtils.*;
+import static sample.TileUtils.*;
 import static sample.FileUtils.read;
 import static sample.FileUtils.readToMap;
 import static sample.Main.*;
@@ -14,7 +16,9 @@ import static sample.MathsUtils.thereExists;
 class Board {
     private Tile[][] board;
     private CircularArray<Player> players;
-    private ArrayList<Tile> bag;
+    private ArrayList<UserTile> bag;
+
+    private Logger logger;
 
     /**
      * Board constructor
@@ -27,6 +31,7 @@ class Board {
      * @param players array of players
      */
     Board(int width, int height, CircularArray<Player> players) {
+        logger = Logger.getLogger(Board.class.getName());
         initBoard(width, height);
 
         this.players = players;
@@ -115,7 +120,7 @@ class Board {
      * Gets and removes random button from the bag
      * @return random button from the bag
      */
-    private Tile getFromBag() {
+    private UserTile getFromBag() {
         Random rand = new Random();
         int n = rand.nextInt(bag.size());
         return bag.remove(n);
@@ -130,16 +135,29 @@ class Board {
      * @return true if the list of tiles forms a valid move, false otherwise.
      */
     int move(ArrayList<Tile> newTiles) {
+        System.out.println("\n" + currentPlayer() + " moving");
+//        logger.log(Level.ALL, "\nMoving");
+
         if (newTiles.isEmpty()) return 0;
 
         // get list of tile lists made from surrounding tiles
-        ArrayList<ArrayList<Tile>> tileLists = getConnections(newTiles, board);
-        System.out.println("number of connections: " + tileLists.size());
+        ArrayList<ArrayList<Tile>> tileLists = getConnections(newTiles, board, UserTile.class);
+
+        System.out.println("Potential connections (" + tileLists.size() + ");");
+        for (ArrayList<Tile> connection : tileLists) {
+            for (Tile t : connection) {
+                System.out.print(t.toString() + " ");
+            }
+            System.out.println();
+        }
 
         // if not connected
         if (tileLists.isEmpty()) {
             // if first move
-            if (thereExists(newTiles,ButtonUtils::isInCentre)) tileLists.add(newTiles);
+            if (thereExists(newTiles,TileUtils::isInCentre)) {
+                System.out.println("First move - added to connections");
+                tileLists.add(newTiles);
+            }
             else return -1;
         }
 
@@ -147,6 +165,14 @@ class Board {
         for (ArrayList<Tile> connection : tileLists) {
             double angle = getAngle(connection);
             sortFromAngle(connection, angle, Tile::getX, Tile::getY);
+        }
+
+        System.out.println("Actual sorted connections (" + tileLists.size() + ");");
+        for (ArrayList<Tile> connection : tileLists) {
+            for (Tile t : connection) {
+                System.out.print(t.toString() + " ");
+            }
+            System.out.println();
         }
 
         // if any tileLists aren't in a line
@@ -158,20 +184,26 @@ class Board {
     }
 
     /**
-     * Refills the rack of the player who just went,
+     * todo Refills the rack of the player who just went,
      * then moves to the next turn,
      */
-    void nextTurn() {
-        refillRack();
+    void nextTurn(int score) {
+        Player prevPlayer = players.next();
+        prevPlayer.add(score);
+        refillRack(prevPlayer);
+
+        if (players.peek().getClass().equals(PlayerAI.class)) {
+            score = ((PlayerAI) players.peek()).move(board);
+            nextTurn(score);
+        }
     }
 
     /**
      * Finds any empty indices, and grabs a new button from the bag
      */
-    private void refillRack() {
-        Player currentPlayer = players.next();
-        while (currentPlayer.getRack().size() < RACK_SIZE) {
-            currentPlayer.getRack().add(getFromBag());
+    private void refillRack(Player player) {
+        while (player.getRack().size() < RACK_SIZE) {
+            player.getRack().add(getFromBag());
         }
     }
 

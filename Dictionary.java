@@ -19,7 +19,7 @@ import static sample.FileUtils.readToTrie;
 abstract class Dictionary {
 
     // trie representation of all words in the dictionary
-    private static final Trie dictionary = readToTrie("src/sample/dict.txt");
+    private static final Trie dictionary = readToTrie("src/sample/dicts/std_dict.txt");
 
     // maps an element in the alphabet to its associated value
     private static final HashMap<String, Integer> alphabet = readToMap("src/sample/alphabet_values.txt", " ");
@@ -37,9 +37,12 @@ abstract class Dictionary {
 
         int value = 0;
         for (ArrayList<UserTile> tiles : in) {
-            if (!isValidWord(ButtonUtils.toString(tiles))) return -1;
+            if (!isValidWord(TileUtils.toString(tiles))) return -1;
             value += getValue(tiles, board);
         }
+
+        if (value == 0) System.out.println("No valid words found"); //todo move to board/main
+
         return value;
     }
 
@@ -55,7 +58,7 @@ abstract class Dictionary {
         if (str == null) return false;
 
         String[] arr = str.split("((?<="+BLANK+")|(?="+BLANK+"))");
-        System.out.println("this is the word: " + Arrays.toString(arr));
+        System.out.println("found valid word: " + str);//todo move to board/main
 
         return isValidWord(arr);
     }

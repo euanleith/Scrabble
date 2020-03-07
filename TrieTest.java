@@ -13,7 +13,7 @@ public class TrieTest {
 
     @Test
     public void testStartsWith() {
-        ArrayList<String> list = FileUtils.read("src/sample/dict.txt");
+        ArrayList<String> list = FileUtils.read("src/sample/std_dict.txt");
         Trie trie = new Trie(list);
 
         assertTrue(trie.startsWith("A"));
@@ -27,7 +27,7 @@ public class TrieTest {
 
     @Test
     public void testSearch() {
-        ArrayList<String> list = FileUtils.read("src/sample/dict.txt");
+        ArrayList<String> list = FileUtils.read("src/sample/std_dict.txt");
         Trie trie = new Trie(list);
 
         ArrayList<String> trieStrs = trie.search("DIABOLISE");
@@ -53,7 +53,7 @@ public class TrieTest {
 
     @Test
     public void isEmpty() {
-        ArrayList<String> list = FileUtils.read("src/sample/dict.txt");
+        ArrayList<String> list = FileUtils.read("src/sample/std_dict.txt");
 
         Trie trie = new Trie(list);
         assertFalse(trie.isEmpty());
@@ -83,7 +83,7 @@ public class TrieTest {
     @Test
     public void testSpeed() {
         System.err.println("Time to find words in dictionary;\n");
-        ArrayList<String> list = FileUtils.read("src/sample/dict.txt");
+        ArrayList<String> list = FileUtils.read("src/sample/std_dict.txt");
         Trie trie = new Trie(list);
         String[] words = new String[]{"AA","MALPOSED","ZZZS"};
         for (String word : words) {

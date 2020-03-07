@@ -1,9 +1,10 @@
 package sample;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 class Player {
-    private ArrayList<Tile> rack;
+    private ArrayList<UserTile> rack;
     private int score;
     private String name;
 
@@ -25,7 +26,15 @@ class Player {
         return score;
     }
 
-    ArrayList<Tile> getRack() {
+    ArrayList<UserTile> getRack() {
         return rack;
+    }
+
+    ArrayList<Tile> getTileRack() {
+        ArrayList<Tile> out = new ArrayList<>(rack.size());
+        for (Tile tile : rack) {
+            out.add(tile);
+        }
+        return out;
     }
 }

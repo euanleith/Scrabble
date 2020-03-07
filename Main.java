@@ -14,11 +14,13 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
-import java.util.ArrayList;
+import java.io.File;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static sample.ButtonUtils.remove;
+import static sample.TileUtils.remove;
+import static sample.FileUtils.readToCircularArray;
 import static sample.TileUtils.getImgs;
 
 
@@ -28,6 +30,9 @@ Major
 General error checks and responses(e.g. invalid move)
 ai
 todo bug; see screenshots
+todo maybe tile shouldn't inc. image, and image should be found when tile is made
+todo can remove tile, and replace with string and a map from those strings to images and functions
+todo add response when clicked
 
 Medium
 Add ability to draw new rack
@@ -49,9 +54,11 @@ public class Main extends Application {
     final static int RACK_SIZE = 7;
     private static final int MAX_PLAYERS = 4;
     private static final int MIN_PLAYERS = 2;
-    final static String[][] boardTiles = new String[BOARD_WIDTH][BOARD_HEIGHT];
+    static final String[][] boardTiles = new String[BOARD_WIDTH][BOARD_HEIGHT];
 
-    private Scene menuScene, setupScene, gameScene, nextTurnScene;
+    private static final int MAX_DICT_BUTTONS = 20;
+
+    private Scene menuScene, setupScene, gameScene, nextTurnScene, optionsScene, dictScene;
 
     private Board board;
 
@@ -97,6 +104,10 @@ public class Main extends Application {
         });
 
         Button options = new Button("Options");
+        options.setOnAction(e -> {
+            optionsScene = initOptionsScene(stage);
+            stage.setScene(optionsScene);
+        });
 
         Button quit = new Button("Quit");
         quit.setOnAction(e -> System.exit(0));
@@ -146,7 +157,10 @@ public class Main extends Application {
             stage.setScene(gameScene);
         });
 
-        side.getChildren().addAll(addPlayer, submit);
+        Button menu = new Button("Menu");
+        menu.setOnAction(e -> stage.setScene(menuScene));
+
+        side.getChildren().addAll(addPlayer, submit, menu);
 
         scene.getChildren().addAll(players, side);
 
@@ -184,7 +198,9 @@ public class Main extends Application {
         for (int i = 0; i < size; i++) {
             HBox hbox = (HBox) vbox.getChildren().get(i);
             TextField text = (TextField) hbox.getChildren().get(0);
-            players.add(new Player(text.getText()));
+            ToggleButton human = (ToggleButton) hbox.getChildren().get(1);
+            if (human.isSelected()) players.add(new Player(text.getText()));
+            else players.add(new PlayerAI(text.getText()));
         }
         return players;
     }
@@ -339,24 +355,30 @@ public class Main extends Application {
     }
 
     private GridPane drawBoardMenu(Stage stage, BorderPane border) {
+
         GridPane side = new GridPane();
+
         Button menu = new Button("Menu");
         menu.setOnAction(e -> stage.setScene(menuScene));
+
         Button quit = new Button("Quit");
         quit.setOnAction(e -> System.exit(0));
+
         Button scores = new Button(board.getScores());
+
+        Text currentTurn = new Text(board.currentPlayer().getName() + "'s turn");
+
         Button finishTurn = new Button("Finish turn");
         finishTurn.setOnAction(e -> {
             int score = board.move(currentTurnTiles);
             if (score != -1) {
-                board.currentPlayer().add(score);
+                board.nextTurn(score);
                 scores.setText(board.getScores());
-                board.nextTurn();
                 currentRack = drawNextRack(border);
                 stage.setScene(initNextTurnScene(stage));
             } else { // if invalid move
                 Text text = new Text("Invalid move!");
-                side.addRow(BOARD_WIDTH+3, text);
+                side.addRow(BOARD_WIDTH+4, text);
                 stage.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<>() {
                     @Override
                     public void handle(javafx.scene.input.MouseEvent event){
@@ -366,24 +388,136 @@ public class Main extends Application {
                 });
             }
         });
+
         side.addRow(BOARD_WIDTH+1, finishTurn, menu, quit);
         side.addRow(BOARD_WIDTH+2, scores);
+        side.addRow(BOARD_WIDTH+3, currentTurn);
+
         return side;
     }
 
-    Scene initNextTurnScene(Stage stage) {
+    private Scene initNextTurnScene(Stage stage) {
         VBox vbox = new VBox();
         vbox.setSpacing(10);
         vbox.setAlignment(Pos.CENTER);
 
         Text playersTurn = new Text(board.currentPlayer().getName() + "'s turn");
         Button startTurn = new Button("Start turn");
-        startTurn.setOnAction(e -> stage.setScene(gameScene));
+        startTurn.setOnAction(e -> {
+            // change current turn text box
+            BorderPane pane = (BorderPane) gameScene.getRoot();
+            GridPane grid = (GridPane) pane.getRight();
+            Text currentPlayer = (Text) grid.getChildren().get(4);
+            currentPlayer.setText(board.currentPlayer().getName() + "'s turn");
+
+            stage.setScene(gameScene);
+        });
 
         vbox.getChildren().addAll(playersTurn, startTurn);
 
         return new Scene(vbox, SCREEN_WIDTH, SCREEN_HEIGHT);
     }
+
+    //------------------
+    /*
+    todo options;
+        dictionary
+            various dicts, with a ToggleGroup for the current dictionary, std dict being static; or have rulesets..?
+                list of all words in the dict, with a tick beside / different colour for chosen ones
+                option to add new words
+                reset button
+     */
+    private Scene initOptionsScene(Stage stage) {
+        VBox vbox = new VBox();
+        vbox.setSpacing(10);
+
+        Button dicts = new Button("Dictionaries");
+        dicts.setOnAction(e -> {
+            dictScene = initDictsScene(stage);
+            stage.setScene(dictScene);
+        });
+
+        vbox.getChildren().addAll(dicts);
+
+        return new Scene(vbox, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+
+    private Scene initDictsScene(Stage stage) {
+        VBox vbox = new VBox();
+        vbox.setSpacing(10);
+
+        //todo replace with vbox.getChildren.addAll(readDicts()) ?
+        File dir = new File("src/sample/dicts");
+        List<File> dicts = Arrays.asList(dir.listFiles());
+        for (File dict : dicts) {
+            Button b = readDict(dict, stage);
+            vbox.getChildren().add(b);
+        }
+
+        return new Scene(vbox, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+
+    private Button readDict(File file, Stage stage) {
+        Button out = new Button(file.getName());
+        out.setOnAction(e -> {
+            Scene dictScene = initDictScene(stage, file);
+            stage.setScene(dictScene);
+        });
+        return out;
+    }
+
+    private Scene initDictScene(Stage stage, File file) {
+        HBox hbox = new HBox();
+
+        CircularArray<String> dict = readToCircularArray(file);
+//        ArrayList<String> dict = read(file);
+
+        VBox vbox = getNext(dict);
+        int pageIndex = 0;
+//        int first = (pageIndex++)*MAX_DICT_BUTTONS;
+//        VBox vbox = new VBox();
+//        vbox.getChildren().addAll(dict.subList(first, first+MAX_DICT_BUTTONS));
+
+
+        Button addWord = new Button("+");
+        addWord.setOnAction(e -> addWord(vbox));
+
+        Button nextPage = new Button(">");
+        nextPage.setOnAction(e -> {
+            hbox.getChildren().remove(0);
+            VBox vbox2 = getNext(dict);
+            hbox.getChildren().add(0, vbox2);
+        });
+
+        hbox.getChildren().addAll(vbox, addWord, nextPage);
+
+        return new Scene(hbox, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }
+
+    //todo yucky
+    //todo generalise; get next n elements of a circular array (or something else that remembers the current index)
+    //todo or just use subList()
+    private VBox getNext(CircularArray<String> list) {
+        VBox vbox = new VBox();
+        for (int i = 0; i < MAX_DICT_BUTTONS; i++) {// && (list.getOutIndex() != list.size())
+            Button b = new Button(list.next());
+            vbox.getChildren().add(b);
+        }
+        return vbox;
+    }
+
+    private void addWord(VBox vbox) {
+        TextField textField = new TextField();
+        textField.setPromptText("new word");
+        textField.setOnAction(e -> {
+            //todo write to file
+            Button word = new Button(textField.getText());
+            vbox.getChildren().add(word);
+            vbox.getChildren().sort(Comparator.comparing(b -> b.getAccessibleText()));
+        });
+    }
+
+    //------------
 
     /**
      * Get the time taken in nanoseconds for a function to run

@@ -4,7 +4,7 @@ import javafx.scene.image.Image;
 
 import java.io.FileInputStream;
 
-public class UserTile extends Tile {
+class UserTile extends Tile {//todo rename
 
     private String text;
 
@@ -34,5 +34,10 @@ public class UserTile extends Tile {
 
     String getText() {
         return text;
+    }
+
+    @Override
+    public String toString() {
+        return text + " (" + getX() + ", " + getY() + ")";
     }
 }

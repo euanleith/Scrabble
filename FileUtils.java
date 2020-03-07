@@ -15,12 +15,36 @@ public abstract class FileUtils {
      * @return Contents of file as an ArrayList of Strings
      */
     static ArrayList<String> read(String fname) {
-        try {
-            File file = new File(fname);
+        File file = new File(fname);
+        return read(file);
+    }
 
+    static ArrayList<String> read(File file) {
+        try {
             BufferedReader br = new BufferedReader(new FileReader(file));
 
             ArrayList<String> str = new ArrayList<>();
+            String line;
+            while ((line = br.readLine()) != null) {
+                str.add(line);
+            }
+
+            return str;
+
+        } catch (Exception e) {e.printStackTrace();}
+        return null;
+    }
+
+    static CircularArray<String> readToCircularArray(String fname) {
+        File file = new File(fname);
+        return readToCircularArray(file);
+    }
+
+    static CircularArray<String> readToCircularArray(File file) {
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(file));
+
+            CircularArray<String> str = new CircularArray<>();
             String line;
             while ((line = br.readLine()) != null) {
                 str.add(line);

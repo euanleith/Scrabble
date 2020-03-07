@@ -2,6 +2,8 @@ package sample;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+
 import static org.junit.Assert.*;
 
 public class CircularArrayTest {
@@ -44,5 +46,4 @@ public class CircularArrayTest {
         assertEquals((Integer)1, arr.next());
 
     }
-
 }

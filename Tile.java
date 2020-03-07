@@ -3,6 +3,7 @@ package sample;
 import javafx.event.EventHandler;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.GridPane;
 
 import static sample.TileUtils.IMG_SIZE;
 
@@ -26,10 +27,15 @@ class Tile {
     }
 
     double getX() {
-        return img.getLayoutX();
+        return GridPane.getColumnIndex(img);
     }
 
     double getY() {
-        return img.getLayoutY();
+        return GridPane.getRowIndex(img);
+    }
+
+    @Override
+    public String toString() {
+        return "[] (" + getX() + ", " + getY() + ")";
     }
 }

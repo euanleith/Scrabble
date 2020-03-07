@@ -19,6 +19,7 @@ public class ArrUtilsTest {
         assertEquals(-1, indexOf(arr, "b"));
     }
 
+    //todo
     @Test
     public void testGetSurrounding() {
         String[][] arr = new String[][]{
@@ -97,5 +98,72 @@ public class ArrUtilsTest {
         assertEquals("a, bc,  d", ArrUtils.toString(arr, ", "));
 
         assertEquals("a|bc| d", ArrUtils.toString(arr, "|"));
+    }
+
+    @Test
+    public void testPowerSet() {
+        ArrayList<String> list1 = new ArrayList<>();
+        list1.add("a");
+        list1.add("b");
+        list1.add("c");
+        list1.add("d");
+
+        ArrayList<ArrayList<String>> list = new ArrayList<>();
+        list.add(new ArrayList<>());
+        list.get(0).add("a");
+        list.add(new ArrayList<>());
+        list.get(1).add("a");
+        list.get(1).add("b");
+        list.add(new ArrayList<>());
+        list.get(2).add("a");
+        list.get(2).add("b");
+        list.get(2).add("c");
+        list.add(new ArrayList<>());
+        list.get(3).add("a");
+        list.get(3).add("b");
+        list.get(3).add("c");
+        list.get(3).add("d");
+        list.add(new ArrayList<>());
+        list.get(4).add("b");
+        list.add(new ArrayList<>());
+        list.get(5).add("b");
+        list.get(5).add("c");
+        list.add(new ArrayList<>());
+        list.get(6).add("b");
+        list.get(6).add("c");
+        list.get(6).add("d");
+        list.add(new ArrayList<>());
+        list.get(7).add("c");
+        list.add(new ArrayList<>());
+        list.get(8).add("c");
+        list.get(8).add("d");
+        list.add(new ArrayList<>());
+        list.get(9).add("d");
+
+        assertEquals(list.toString(), powerSet(list1).toString());
+    }
+
+    @Test
+    public void testCombinations() {
+        ArrayList<String> list = new ArrayList<>();
+        list.add("a");
+        list.add("b");
+        list.add("c");
+        list.add("d");
+
+        System.err.println(combinations(list).toString());
+
+        System.err.println(combinations(list.size()).toString());
+    }
+
+    @Test
+    public void testReverse() {
+        ArrayList<String> list = new ArrayList<>();
+        list.add("a");
+        list.add("b");
+        list.add("c");
+        list.add("d");
+
+        assertEquals("[d, c, b, a]", reverse(list).toString());
     }
 }
